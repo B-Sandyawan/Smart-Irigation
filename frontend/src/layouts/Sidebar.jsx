@@ -1,60 +1,99 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 const navItems = [
   {
     name: 'Dashboard',
     path: '/',
-    icon: (isActive) => (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" stroke={isActive ? '#FFFFFF' : '#1C1C1C'} xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 10L12 3L21 10V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V10Z" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    )
+    icon: '/icons/home.svg',
+    iconClass: 'w-[clamp(22px,3.2vw,42px)]',
+    alt: 'Home'
   },
   {
     name: 'Pantau Tanaman',
     path: '/plants',
-    icon: (isActive) => (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" stroke={isActive ? '#FFFFFF' : '#1C1C1C'} xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 12C2 12 5.5 6.5 12 6.5C18.5 6.5 22 12 22 12C22 12 18.5 17.5 12 17.5C5.5 17.5 2 12 2 12Z" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="12" cy="12" r="2.8" />
-      </svg>
-    )
+    icon: '/icons/eye.svg',
+    iconClass: 'w-[clamp(25px,3.7vw,48px)]',
+    alt: 'Pantau Tanaman'
   },
   {
     name: 'Profil',
     path: '/profile',
-    icon: (isActive) => (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" stroke={isActive ? '#FFFFFF' : '#1C1C1C'} xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="7.7" r="3.3" />
-        <path d="M5 20.3C5 17.8 8.1 15.8 12 15.8C15.9 15.8 19 17.8 19 20.3" strokeLinecap="round"/>
-      </svg>
-    )
+    icon: '/icons/profile.svg',
+    iconClass: 'w-[clamp(21px,3vw,40px)]',
+    alt: 'Profil'
   }
 ];
 
 const Sidebar = () => {
   const location = useLocation();
+  const navRef = useRef(null);
+  const navItemRefs = useRef([]);
+  const [indicatorTop, setIndicatorTop] = useState(0);
+
+  const activeIndex = useMemo(() => {
+    const index = navItems.findIndex((item) => item.path === location.pathname);
+    return index >= 0 ? index : 0;
+  }, [location.pathname]);
+
+  const updateIndicatorPosition = useCallback(() => {
+    const navElement = navRef.current;
+    const activeItem = navItemRefs.current[activeIndex];
+
+    if (!navElement || !activeItem) {
+      return;
+    }
+
+    const navRect = navElement.getBoundingClientRect();
+    const itemRect = activeItem.getBoundingClientRect();
+    setIndicatorTop(itemRect.top - navRect.top);
+  }, [activeIndex]);
+
+  useEffect(() => {
+    updateIndicatorPosition();
+  }, [updateIndicatorPosition]);
+
+  useEffect(() => {
+    window.addEventListener('resize', updateIndicatorPosition);
+    return () => window.removeEventListener('resize', updateIndicatorPosition);
+  }, [updateIndicatorPosition]);
 
   return (
-    <aside className="w-[228px] min-h-screen bg-[#F2EEE9] pt-[76px] pl-[31px] pr-[14px] box-border">
-      <nav className="flex w-full flex-col gap-[7px]">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          
+    <aside className="fixed left-[clamp(10px,3vw,38px)] top-[5vh] z-20 flex h-[90vh] w-[clamp(84px,11vw,140px)] flex-col items-center rounded-[clamp(16px,3vw,34px)] bg-[#FEF9F3] pt-[clamp(8px,1.4vw,16px)]">
+      <div className="mb-[clamp(16px,6vw,56px)] mt-[clamp(6px,1.4vw,16px)] flex w-full justify-center">
+        <img src="/icons/logo.png" alt="Logo" className="h-auto w-[clamp(30px,4.2vw,58px)]" />
+      </div>
+
+      <nav ref={navRef} className="relative flex w-full flex-col">
+        <div
+          className="pointer-events-none absolute right-[-1px] z-[1] h-[clamp(82px,11.5vw,124px)] w-[clamp(45px,4.36vw,80px)] rounded-[clamp(36px,5vw,62px)_0_0_clamp(36px,5vw,62px)] bg-[#9BC19B] transition-[top] duration-300 [transition-timing-function:cubic-bezier(0.68,-0.55,0.265,1.55)] [--curve-w:clamp(29px,4.3vw,54px)] [--curve-h:clamp(25px,3.8vw,48px)]"
+          style={{ top: `${indicatorTop}px` }}
+        >
+          <div className="absolute right-[clamp(-44px,-3.1vw,-26px)] top-[clamp(10px,1.4vw,16px)] z-[5] h-[clamp(58px,8.2vw,98px)] w-[clamp(58px,8.2vw,98px)] rounded-full bg-[#FEF9F3]" />
+          <div className="absolute right-0 top-[calc(var(--curve-h)*-1+1px)] h-[var(--curve-h)] w-[var(--curve-w)] [background-image:radial-gradient(circle_at_top_left,transparent_calc(var(--curve-w)-1px),#9BC19B_var(--curve-w))]" />
+          <div className="absolute bottom-[calc(var(--curve-h)*-1+1px)] right-0 h-[var(--curve-h)] w-[var(--curve-w)] [background-image:radial-gradient(circle_at_bottom_left,transparent_calc(var(--curve-w)-1px),#9BC19B_var(--curve-w))]" />
+        </div>
+
+        {navItems.map((item, index) => {
+          const isActive = activeIndex === index;
+
           return (
             <NavLink
               key={item.path}
               to={item.path}
-              className={`flex h-[41px] w-[165px] items-center rounded-[21px] pl-[17px] pr-[12px] transition-colors
-                ${isActive ? 'bg-[#4B9567]' : 'hover:bg-[#E9DED4]'}`}
+              ref={(element) => {
+                navItemRefs.current[index] = element;
+              }}
+              aria-label={item.name}
+              className="relative z-[2] flex h-[clamp(82px,11.5vw,124px)] w-full items-center justify-center"
             >
-              <div className="flex h-[17px] w-[17px] shrink-0 items-center justify-center">
-                {item.icon(isActive)}
+              <div
+                className={`flex h-[clamp(34px,4.7vw,62px)] w-[clamp(34px,4.7vw,62px)] items-center justify-center rounded-full transition-transform duration-300 [transition-timing-function:cubic-bezier(0.68,-0.55,0.265,1.55)] ${
+                  isActive ? 'translate-x-[clamp(34px,6vw,65px)] translate-y-[clamp(2px,0.35vw,5px)]' : ''
+                }`}
+              >
+                <img src={item.icon} alt={item.alt} className={`${item.iconClass} h-auto`} />
               </div>
-              <span className={`ml-[10px] text-[15px] font-medium leading-[1.2] ${isActive ? 'text-[#FFFDFD]' : 'text-[#121212]'}`}>
-                {item.name}
-              </span>
             </NavLink>
           );
         })}
