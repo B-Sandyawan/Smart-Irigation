@@ -1,7 +1,6 @@
 import React from 'react';
 
 const axisY = [0, 25, 50, 75, 100];
-// Mengubah label sumbu X menjadi format mingguan
 const axisX = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
 const DropletIcon = () => (
@@ -42,8 +41,7 @@ const SensorChartCard = ({ title, value, iconType = 'humidity', lineColor = '#8C
   const plotWidth = chartWidth - leftPad - rightPad;
   const plotHeight = chartHeight - topPad - bottomPad;
 
-  // Menghitung posisi titik data (dinamis sesuai jumlah data yang dikirim via props 'points')
-  // Catatan: Pastikan array 'points' yang dikirim ke komponen ini berisi 7 angka agar pas dengan jumlah hari
+  
   const polylinePoints = points
     .map((point, index) => {
       const x = leftPad + (plotWidth / (points.length - 1)) * index;
@@ -80,7 +78,7 @@ const SensorChartCard = ({ title, value, iconType = 'humidity', lineColor = '#8C
 
           {/* Garis Putus-putus Vertikal (Diselaraskan dengan jumlah hari di axisX) */}
           {axisX.map((_, index) => {
-            // Kita lewati garis putus-putus di hari pertama (index 0) dan terakhir agar desainnya lebih bersih di bagian tepi
+            
             if (index === 0 || index === axisX.length - 1) return null;
             
             const x = leftPad + (plotWidth / (axisX.length - 1)) * index;
@@ -110,7 +108,6 @@ const SensorChartCard = ({ title, value, iconType = 'humidity', lineColor = '#8C
 
           {/* Label Sumbu X (Mingguan) */}
           {axisX.map((label, index) => {
-            // Rumus posisi x disamakan dengan polyline agar label persis berada di bawah titik sudut
             const x = leftPad + (plotWidth / (axisX.length - 1)) * index;
             const y = topPad + plotHeight + 16;
             return (

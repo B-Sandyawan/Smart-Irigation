@@ -1,16 +1,8 @@
 import React from 'react';
 
-/**
- * StreakVisualization Component
- * 
- * Menampilkan visualisasi di sisi kiri halaman Profile:
- * - Ilustrasi tanaman kangkung (water spinach) yang detail
- * - Grafik streak/performa dengan data visual yang jelas
- */
+
 const StreakVisualization = () => {
-  // ============================================================
-  // DUMMY DATA - STREAK/PERFORMA
-  // ============================================================
+  
   const streakData = [
     { day: 'Senin', value: 85 },
     { day: 'Selasa', value: 90 },
@@ -22,15 +14,13 @@ const StreakVisualization = () => {
   ];
 
   const maxValue = Math.max(...streakData.map(d => d.value));
-  const streakStreak = 7; // Hari berturut-turut
-  const totalWatering = 126; // Total penyiraman
+  const streakStreak = 7; 
+  const totalWatering = 126; 
 
   return (
     <div className="flex flex-col gap-8">
       
-      {/* ============================================================
-          WATER SPINACH VISUALIZATION (KANGKUNG)
-          ============================================================ */}
+      
       <div className="bg-[#FFEDD9] rounded-[24px] p-8 shadow-md">
         
         {/* Title */}
@@ -38,7 +28,7 @@ const StreakVisualization = () => {
           Tanaman Kangkung
         </h3>
 
-        {/* SVG Illustration - Water Spinach Plant */}
+        
         <svg
           viewBox="0 0 200 300"
           className="w-full max-w-xs mx-auto"
@@ -133,9 +123,7 @@ const StreakVisualization = () => {
 
       </div>
 
-      {/* ============================================================
-          STREAK CHART - WATERING PERFORMANCE
-          ============================================================ */}
+      
       <div className="bg-[#FFEDD9] rounded-[24px] p-8 shadow-md">
         
         {/* Title */}

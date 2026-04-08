@@ -1,6 +1,5 @@
 import React from 'react';
 
-// Warna disesuaikan dengan tema Dashboard
 const statusStyles = {
   Selesai: 'bg-[#C3DBC9] text-[#385B38]',
   Gagal: 'bg-[#FCEBEA] text-[#D9534F]',
@@ -24,17 +23,16 @@ const WateringHistoryList = ({ items }) => {
         return (
           <article
             key={item.id}
-            // Background diubah ke putih dan shadow disamakan dengan dashboard
             className="flex items-center justify-between gap-4 rounded-[20px] bg-white px-5 py-4 shadow-sm"
           >
             <div className="flex min-w-0 items-center gap-4">
-              {/* Warna icon disesuaikan dengan hijau Dashboard */}
+              
               <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-[#4B9567]">
                 <LeafIcon />
               </div>
 
               <div className="min-w-0">
-                {/* Font disesuaikan dengan font dashboard (text-[#444] dan text-[#999]) */}
+                
                 <p className="truncate text-[15px] font-bold leading-tight text-[#444]">{item.primaryText}</p>
                 <p className="mt-1 text-[13px] font-medium leading-tight text-[#999]">{item.secondaryText}</p>
               </div>
