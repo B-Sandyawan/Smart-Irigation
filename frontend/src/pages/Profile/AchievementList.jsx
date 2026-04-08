@@ -1,47 +1,30 @@
 import React from 'react';
 
-/**
- * AchievementCard Component
- * 
- * Menampilkan achievement individual dengan icon, title, dan description
- * Tipografi: Montserrat Bold untuk title
- */
 const AchievementCard = ({ icon, title, description, titleColor, borderColor }) => {
   return (
     <div 
-      className="bg-[#FEF9F3] rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
-      style={{ borderLeft: `3px solid ${borderColor}` }}
+      className="bg-white rounded-[16px] p-4 shadow-sm hover:shadow-md transition-shadow flex items-center gap-3"
+      style={{ borderLeft: `4px solid ${borderColor}` }}
     >
-      
-      {/* Achievement Icon & Title */}
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-[18px]">{icon}</span>
+      <div className="text-[24px] flex-shrink-0">{icon}</div>
+      <div className="flex flex-col">
         <h3 
-          className="text-[11px] font-['Montserrat'] font-bold"
+          className="text-[13px] font-bold tracking-tight"
           style={{ color: titleColor }}
         >
           {title}
         </h3>
+        <p className="text-[#999] text-[12px] font-medium mt-0.5">
+          {description}
+        </p>
       </div>
-
-      {/* Achievement Description */}
-      <p className="text-[#1a1a1a] text-[10px] font-['Montserrat'] font-normal pl-0">
-        {description}
-      </p>
-
     </div>
   );
 };
 
-/**
- * AchievementList Component
- * 
- * Menampilkan list dari achievement cards
- * Tipografi: Montserrat untuk semua teks
- */
 const AchievementList = ({ achievements }) => {
   return (
-    <div className="space-y-2 font-['Montserrat']">
+    <div className="space-y-3 font-sans">
       {achievements.map((achievement, idx) => (
         <AchievementCard
           key={idx}

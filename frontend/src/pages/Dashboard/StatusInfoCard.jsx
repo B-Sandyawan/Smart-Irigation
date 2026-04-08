@@ -1,7 +1,7 @@
 import React from 'react';
 
 const DimSunIcon = () => (
-  <svg viewBox="0 0 72 72" className="h-[88px] w-[88px]" aria-hidden="true">
+  <svg viewBox="0 0 72 72" className="h-[54px] w-[54px]" aria-hidden="true">
     <circle cx="36" cy="36" r="12" fill="#D5B96B" opacity="0.7" />
     <g stroke="#B6953D" strokeWidth="5" strokeLinecap="round" opacity="0.35">
       <path d="M36 7v10" />
@@ -24,7 +24,7 @@ const SoilIcon = ({ tone }) => {
   const waterColor = '#5FA8FF';
 
   return (
-    <svg viewBox="0 0 72 72" className="h-[76px] w-[76px]" aria-hidden="true">
+    <svg viewBox="0 0 72 72" className="h-[48px] w-[48px]" aria-hidden="true">
       <path d="M12 39c6-4 12-5 18-3 7 2 11 7 18 7 8 0 12-5 12-5v16H12V39Z" fill={soilColor} />
       <path d="M12 39c6-4 12-5 18-3 7 2 11 7 18 7 8 0 12-5 12-5v7c-5 4-9 6-16 6-8 0-12-4-19-6-6-2-12-1-13 0v-6Z" fill={topColor} opacity={isWet ? 0.85 : 1} />
       {isWet ? (
@@ -74,68 +74,68 @@ const StatusInfoCard = ({
   const sunOpacity = tone === 'dim' ? 0.72 : 1;
 
   return (
-    <article className="relative h-[176px] w-full rounded-[26px] bg-white px-[24px] py-[20px] shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
-      <p className="text-[18px] font-bold leading-[1.22]" style={{ color: labelColor || '#132A58' }}>{label}</p>
-      <p className="mt-[14px] text-[26px] font-normal leading-[1.22]" style={{ color: valueColor }}>
+    <article className="relative h-[120px] w-full rounded-[20px] bg-white px-[16px] py-[16px] shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
+      <p className="text-[14px] font-bold leading-[1.22]" style={{ color: labelColor || '#132A58' }}>{label}</p>
+      <p className="mt-[8px] text-[20px] font-normal leading-[1.22]" style={{ color: valueColor }}>
         {value}
       </p>
       {statusNote ? (
-        <p className="mt-[6px] max-w-[170px] text-[13px] font-medium leading-[1.3]" style={{ color: accentColor || '#C4A884' }}>
+        <p className="mt-[4px] max-w-[130px] text-[11px] font-medium leading-[1.3]" style={{ color: accentColor || '#C4A884' }}>
           {statusNote}
         </p>
       ) : null}
 
       <div
-        className="absolute right-[10px] top-[20px] flex h-[122px] w-[114px] items-center justify-center rounded-full border-[8px]"
+        className="absolute right-[10px] top-[14px] flex h-[80px] w-[76px] items-center justify-center rounded-full border-[5px]"
         style={{ borderColor: accentColor || '#C4A884', backgroundColor: iconBg }}
         aria-hidden="true"
       >
         <div
-          className="flex h-[102px] w-[94px] items-center justify-center rounded-full"
-        style={{ backgroundColor: '#FFFFFF' }}
-        aria-hidden="true"
-      >
-        {isTemperatureIcon && iconSrc && iconOverlaySrc ? (
-          <div className="relative h-[78px] w-[78px]">
+          className="flex h-[66px] w-[62px] items-center justify-center rounded-full"
+          style={{ backgroundColor: '#FFFFFF' }}
+          aria-hidden="true"
+        >
+          {isTemperatureIcon && iconSrc && iconOverlaySrc ? (
+            <div className="relative h-[48px] w-[48px]">
+              <img
+                src={iconSrc}
+                alt={iconAlt || ''}
+                className="absolute inset-0 h-full w-full object-contain"
+                aria-hidden={iconAlt ? undefined : 'true'}
+              />
+              <img
+                src={iconOverlaySrc}
+                alt=""
+                className="absolute inset-0 h-full w-full object-contain"
+                style={{ filter: temperatureFilter }}
+                aria-hidden="true"
+              />
+            </div>
+          ) : isSunIcon ? (
+            tone === 'dim' ? (
+              <DimSunIcon />
+            ) : (
+              <img
+                src={iconSrc}
+                alt={iconAlt || ''}
+                className="h-[54px] w-[54px] object-contain"
+                style={{ filter: sunFilter, opacity: sunOpacity }}
+                aria-hidden={iconAlt ? undefined : 'true'}
+              />
+            )
+          ) : isSoilIcon ? (
+            <SoilIcon tone={tone} />
+          ) : iconSrc ? (
             <img
               src={iconSrc}
               alt={iconAlt || ''}
-              className="absolute inset-0 h-full w-full object-contain"
+              className="object-contain"
+              style={{ width: `${iconSize || 48}px`, height: `${iconSize || 48}px` }}
               aria-hidden={iconAlt ? undefined : 'true'}
             />
-            <img
-              src={iconOverlaySrc}
-              alt=""
-              className="absolute inset-0 h-full w-full object-contain"
-              style={{ filter: temperatureFilter }}
-              aria-hidden="true"
-            />
-          </div>
-        ) : isSunIcon ? (
-          tone === 'dim' ? (
-            <DimSunIcon />
           ) : (
-            <img
-              src={iconSrc}
-              alt={iconAlt || ''}
-              className="h-[88px] w-[88px] object-contain"
-              style={{ filter: sunFilter, opacity: sunOpacity }}
-              aria-hidden={iconAlt ? undefined : 'true'}
-            />
-          )
-        ) : isSoilIcon ? (
-          <SoilIcon tone={tone} />
-        ) : iconSrc ? (
-          <img
-            src={iconSrc}
-            alt={iconAlt || ''}
-            className="object-contain"
-            style={{ width: `${iconSize || 72}px`, height: `${iconSize || 72}px` }}
-            aria-hidden={iconAlt ? undefined : 'true'}
-          />
-        ) : (
-          <span className="text-[42px] leading-none">{icon}</span>
-        )}
+            <span className="text-[28px] leading-none">{icon}</span>
+          )}
         </div>
       </div>
     </article>
