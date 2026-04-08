@@ -1,7 +1,8 @@
 import React from 'react';
 
 const axisY = [0, 25, 50, 75, 100];
-const axisX = ['Feb', 'March', 'Apr', 'May'];
+// Mengubah label sumbu X menjadi format mingguan
+const axisX = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
 const DropletIcon = () => (
   <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -41,6 +42,8 @@ const SensorChartCard = ({ title, value, iconType = 'humidity', lineColor = '#8C
   const plotWidth = chartWidth - leftPad - rightPad;
   const plotHeight = chartHeight - topPad - bottomPad;
 
+  // Menghitung posisi titik data (dinamis sesuai jumlah data yang dikirim via props 'points')
+  // Catatan: Pastikan array 'points' yang dikirim ke komponen ini berisi 7 angka agar pas dengan jumlah hari
   const polylinePoints = points
     .map((point, index) => {
       const x = leftPad + (plotWidth / (points.length - 1)) * index;
@@ -50,45 +53,73 @@ const SensorChartCard = ({ title, value, iconType = 'humidity', lineColor = '#8C
     .join(' ');
 
   return (
-    <article className="rounded-[22px] bg-[#F2F2F2] px-[24px] py-[18px] shadow-[0_10px_16px_rgba(72,97,70,0.25)]">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-[8px]">
+    <article className="rounded-[24px] bg-white px-6 py-6 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
           {iconByType[iconType] || iconByType.humidity}
-          <h3 className="text-[31px] font-semibold leading-[1.1] text-[#1F1F1F]">{title}</h3>
+          <h3 className="text-[16px] font-bold leading-tight text-[#444]">{title}</h3>
         </div>
-        <p className="text-[34px] font-semibold leading-[1] text-[#111111]">{value}</p>
+        <p className="text-[28px] font-bold leading-none text-[#385B38] tracking-tight">{value}</p>
       </div>
 
-      <div className="mt-[8px] overflow-x-auto">
+      <div className="mt-4 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
         <svg className="min-w-[760px]" width="760" height="130" viewBox="0 0 760 130" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          
+          {/* Garis Horizontal dan Label Sumbu Y */}
           {axisY.map((tick) => {
             const y = topPad + ((100 - tick) / 100) * plotHeight;
             return (
               <g key={tick}>
-                <line x1={leftPad} y1={y} x2={chartWidth - rightPad} y2={y} stroke="#BDBDBD" strokeWidth="1" />
-                <text x={leftPad - 8} y={y + 3} textAnchor="end" fontSize="10" fill="#3B3B3B">
+                <line x1={leftPad} y1={y} x2={chartWidth - rightPad} y2={y} stroke="#F0F0F0" strokeWidth="1" />
+                <text x={leftPad - 8} y={y + 3} textAnchor="end" fontSize="11" fill="#999" fontWeight="500">
                   {tick}
                 </text>
               </g>
             );
           })}
 
-          {[1, 2, 3, 4].map((index) => {
-            const x = leftPad + (plotWidth / 5) * index;
-            return <line key={index} x1={x} y1={topPad} x2={x} y2={topPad + plotHeight} stroke="#C8C8C8" strokeWidth="1" />;
+          {/* Garis Putus-putus Vertikal (Diselaraskan dengan jumlah hari di axisX) */}
+          {axisX.map((_, index) => {
+            // Kita lewati garis putus-putus di hari pertama (index 0) dan terakhir agar desainnya lebih bersih di bagian tepi
+            if (index === 0 || index === axisX.length - 1) return null;
+            
+            const x = leftPad + (plotWidth / (axisX.length - 1)) * index;
+            return (
+              <line 
+                key={index} 
+                x1={x} 
+                y1={topPad} 
+                x2={x} 
+                y2={topPad + plotHeight} 
+                stroke="#F0F0F0" 
+                strokeWidth="1" 
+                strokeDasharray="4 4" 
+              />
+            );
           })}
 
-          <polyline points={polylinePoints} fill="none" stroke={lineColor} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Garis Grafik Data (Polyline) */}
+          <polyline 
+            points={polylinePoints} 
+            fill="none" 
+            stroke={lineColor} 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+          />
 
+          {/* Label Sumbu X (Mingguan) */}
           {axisX.map((label, index) => {
-            const x = leftPad + (plotWidth / (axisX.length + 1)) * (index + 1);
-            const y = topPad + plotHeight + 13;
+            // Rumus posisi x disamakan dengan polyline agar label persis berada di bawah titik sudut
+            const x = leftPad + (plotWidth / (axisX.length - 1)) * index;
+            const y = topPad + plotHeight + 16;
             return (
-              <text key={label} x={x} y={y} textAnchor="middle" fontSize="10" fill="#2D2D2D">
+              <text key={label} x={x} y={y} textAnchor="middle" fontSize="11" fill="#999" fontWeight="500">
                 {label}
               </text>
             );
           })}
+          
         </svg>
       </div>
     </article>

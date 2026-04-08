@@ -1,54 +1,64 @@
 import React from 'react';
 
+// ↓↓↓ MASUKKAN LINK GAMBAR KANGKUNG KAMU DI SINI UNTUK DEFAULT ↓↓↓
+import kangkungImage from '../../assets/17065c4e3231a60b9b413a8146e43809 1.png';
+// ↑↑↑ ========================================================== ↑↑↑
+
 /**
  * PlantInfoCard Component
- * 
- * Menampilkan informasi tanaman kangkung dengan gambar dalam frame lingkaran
- * Tipografi:
- * - Judul: M PLUS 1p Bold
- * - Subtitle & Description: Montserrat Regular/Bold
+ * * Menampilkan informasi tanaman kangkung dengan gambar dalam frame lingkaran
+ * yang utuh dan presisi (tidak terpotong).
+ * * Tipografi: font-sans (Montserrat/MPLUS), warna teks abu gelap `#444` dan hijau Dashboard `#4B9567`.
  */
 const PlantInfoCard = ({ 
-  imageUrl, 
+  // Jika prop 'imageUrl' tidak dikirim, akan menggunakan kangkungImage yang diimport di atas.
+  imageUrl = kangkungImage, 
   plantName = "Kangkung",
   plantSubtitle = "Tanaman dalam kebunku",
   plantDescription = "Kangkung adalah tanaman sayuran hijau yang tumbuh cepat dan banyak ditemukan di daerah berair."
 }) => {
   return (
-    <div className="bg-[#FEF9F3] rounded-2xl p-4 shadow-md w-full">
+    // Latar belakang putih dan shadow ringan ala Dashboard
+    <div className="bg-white rounded-[24px] p-6 shadow-sm w-full flex flex-col items-center">
       
       {/* ============================================================
-          PLANT IMAGE - CIRCULAR FRAME
+          Frame Lingkaran Tanaman
           ============================================================ */}
-      <div className="flex justify-center mb-2">
-        <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-[#9BC19B] shadow-md flex-shrink-0">
+      <div className="flex justify-center mb-5">
+        {/*
+          1. w-[180px] h-[180px] -> Ukuran lingkaran sebanding dashboard
+          2. rounded-full overflow-hidden border-[4px] border-[#4B9567] -> Membuat frame lingkaran hijau
+          3. bg-[#FDF4E9] -> Memberi warna krem di dalam lingkaran
+          4. flex items-center justify-center -> Menengahkan gambar di dalam lingkaran
+        */}
+        <div className="relative w-[180px] h-[180px] rounded-full overflow-hidden border-[4px] border-[#4B9567] bg-[#FDF4E9] flex items-center justify-center flex-shrink-0">
           <img
             src={imageUrl}
             alt={plantName}
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            // MENGUBAH 'object-cover' MENJADI 'object-contain' agar gambar tampak utuh, tidak terpotong,
+            // dan presisi di tengah.
+            // Ditambah p-3 agar ada sedikit jarak aman dari garis tepi (border).
+            className="w-full h-full object-contain p-3 z-10"
           />
         </div>
       </div>
 
       {/* ============================================================
-          PLANT TITLE - M PLUS 1p BOLD
+          Judul & Subtitle
           ============================================================ */}
-      <h2 className="text-center text-[#1a1a1a] text-[24px] font-['M_PLUS_1p'] font-bold mb-1">
+      <h2 className="text-center text-[#444] text-[24px] font-bold mb-1 tracking-tight">
         {plantName}
       </h2>
-
-      {/* ============================================================
-          PLANT SUBTITLE - MONTSERRAT BOLD
-          ============================================================ */}
-      <p className="text-center text-[#9BC19B] text-[13px] font-['Montserrat'] font-bold mb-2">
+      <p className="text-center text-[#4B9567] text-[14px] font-bold mb-4">
         {plantSubtitle}
       </p>
 
       {/* ============================================================
-          PLANT DESCRIPTION - MONTSERRAT REGULAR (3 LINES)
+          Deskripsi
           ============================================================ */}
-      <div className="flex justify-center">
-        <p className="text-center text-[#1a1a1a] text-[12px] font-['Montserrat'] font-normal leading-relaxed max-w-[240px]">
+      <div className="flex justify-center w-full">
+        {/* Jarak antar baris disesuaikan (leading-relaxed) agar rapi */}
+        <p className="text-center text-[#888] text-[13px] font-medium leading-relaxed max-w-[240px]">
           {plantDescription}
         </p>
       </div>

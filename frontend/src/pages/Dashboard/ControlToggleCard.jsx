@@ -25,12 +25,12 @@ const ControlToggleCard = ({
 
   return (
     <section
-      className="relative h-[350px] w-full rounded-[25px] bg-white p-[22px] shadow-[-4px_4px_10px_rgba(0,0,0,0.16),4px_-4px_10px_rgba(0,0,0,0.16)]"
+      className="relative h-[200px] w-full rounded-[20px] bg-white p-[16px] shadow-[-4px_4px_10px_rgba(0,0,0,0.16),4px_-4px_10px_rgba(0,0,0,0.16)]"
       aria-label={title}
     >
-      <p className="text-[20px] font-bold leading-[1.485] text-[#949494]">{title}</p>
+      <p className="text-[14px] font-bold leading-[1.485] text-[#949494]">{title}</p>
       <p
-        className="mt-[2px] text-[20px] font-bold leading-[1.485]"
+        className="mt-[2px] text-[14px] font-bold leading-[1.485]"
         style={{ color: accentColor }}
       >
         {subtitle}
@@ -39,18 +39,18 @@ const ControlToggleCard = ({
       <button
         type="button"
         onClick={onToggle}
-        className="group absolute left-1/2 top-[100px] flex h-[206px] w-[206px] -translate-x-1/2 items-center justify-center rounded-full border-0 p-0 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_28px_rgba(0,0,0,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4B95674A]"
+        className="group absolute left-1/2 top-[65px] flex h-[100px] w-[100px] -translate-x-1/2 items-center justify-center rounded-full border-0 p-0 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_28px_rgba(0,0,0,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4B95674A]"
         style={{ backgroundColor: iconBgOuter, boxShadow: '0 4px 4px rgba(0, 0, 0, 0.25)' }}
         aria-pressed={isActive}
         aria-label={`${title} ${isActive ? 'aktif' : 'nonaktif'}${isWaterMeter ? `, air ${Math.round(clampedAvailability)}%` : ''}`}
       >
         <span
-          className="relative z-10 flex h-[178px] w-[178px] items-center justify-center rounded-full transition-all duration-200 group-hover:scale-[1.015]"
+          className="relative z-10 flex h-[84px] w-[84px] items-center justify-center rounded-full transition-all duration-200 group-hover:scale-[1.015]"
           style={{ backgroundColor: iconBgInner }}
         >
           {isWaterMeter ? (
             <svg
-              className="pointer-events-none absolute inset-0 z-0 h-[178px] w-[178px]"
+              className="pointer-events-none absolute inset-0 z-0 h-[84px] w-[84px]"
               viewBox="0 0 178 178"
               aria-hidden="true"
             >
@@ -86,18 +86,18 @@ const ControlToggleCard = ({
           <img
             src={iconTypeMap[iconType]}
             alt=""
-            className="relative z-10 h-[142px] w-[146px] object-contain drop-shadow-[0_8px_10px_rgba(0,0,0,0.18)]"
+            className="relative z-10 h-[60px] w-[60px] object-contain drop-shadow-[0_8px_10px_rgba(0,0,0,0.18)]"
             aria-hidden="true"
           />
         </span>
       </button>
 
-      <p className="absolute bottom-[18px] left-[22px] text-[20px] font-bold leading-[1.485] text-[#949494]">
+      <p className="absolute bottom-[12px] left-[16px] text-[12px] font-bold leading-[1.485] text-[#949494]">
         {isActive ? 'Sedang Aktif' : 'Sedang Nonaktif'}
       </p>
 
       {isWaterMeter ? (
-        <p className="absolute bottom-[18px] right-[22px] text-[16px] font-semibold leading-[1.2] text-[#163E8E]">
+        <p className="absolute bottom-[12px] right-[16px] text-[12px] font-semibold leading-[1.2] text-[#163E8E]">
           {Math.round(clampedAvailability)}%
         </p>
       ) : null}

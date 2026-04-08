@@ -6,21 +6,21 @@ const navItems = [
     name: 'Dashboard',
     path: '/',
     icon: '/icons/home.svg',
-    iconClass: 'w-[clamp(22px,3.2vw,42px)]',
+    iconWidth: 'w-[24px]',
     alt: 'Home'
   },
   {
     name: 'Pantau Tanaman',
     path: '/plants',
     icon: '/icons/eye.svg',
-    iconClass: 'w-[clamp(25px,3.7vw,48px)]',
+    iconWidth: 'w-[28px]',
     alt: 'Pantau Tanaman'
   },
   {
     name: 'Profil',
     path: '/profile',
     icon: '/icons/profile.svg',
-    iconClass: 'w-[clamp(21px,3vw,40px)]',
+    iconWidth: 'w-[22px]',
     alt: 'Profil'
   }
 ];
@@ -29,7 +29,7 @@ const Sidebar = () => {
   const location = useLocation();
   const navRef = useRef(null);
   const navItemRefs = useRef([]);
-  const [indicatorTop, setIndicatorTop] = useState(0);
+  const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, left: 0 });
 
   const activeIndex = useMemo(() => {
     const index = navItems.findIndex((item) => item.path === location.pathname);
@@ -46,11 +46,19 @@ const Sidebar = () => {
 
     const navRect = navElement.getBoundingClientRect();
     const itemRect = activeItem.getBoundingClientRect();
-    setIndicatorTop(itemRect.top - navRect.top);
+    
+    // Menyimpan koordinat Y (Desktop) dan X (Mobile) sekaligus
+    setIndicatorStyle({
+      top: itemRect.top - navRect.top,
+      left: itemRect.left - navRect.left,
+    });
   }, [activeIndex]);
 
   useEffect(() => {
-    updateIndicatorPosition();
+    const timer = setTimeout(() => {
+      updateIndicatorPosition();
+    }, 50);
+    return () => clearTimeout(timer);
   }, [updateIndicatorPosition]);
 
   useEffect(() => {
@@ -59,21 +67,46 @@ const Sidebar = () => {
   }, [updateIndicatorPosition]);
 
   return (
-    <aside className="fixed left-[clamp(10px,3vw,38px)] top-[5vh] z-20 flex h-[90vh] w-[clamp(84px,11vw,140px)] flex-col items-center rounded-[clamp(16px,3vw,34px)] bg-[#FEF9F3] pt-[clamp(8px,1.4vw,16px)]">
-      <div className="mb-[clamp(16px,6vw,56px)] mt-[clamp(6px,1.4vw,16px)] flex w-full justify-center">
-        <img src="/icons/logo.png" alt="Logo" className="h-auto w-[clamp(30px,4.2vw,58px)]" />
+    <aside className="fixed z-20 flex bg-[#FEF9F3] transition-all duration-300 shadow-sm 
+      /* Konfigurasi Mobile (Bottom Navigation) */
+      bottom-[16px] left-[16px] right-[16px] h-[76px] flex-row items-center justify-between rounded-[32px] px-6
+      /* Konfigurasi Desktop (Sidebar Vertical) */
+      md:bottom-[24px] md:left-[24px] md:top-[24px] md:right-auto md:w-[76px] md:flex-col md:justify-start md:px-0 md:pt-8 md:h-auto lg:bottom-[32px] lg:left-[32px] lg:top-[32px]">
+      
+      {/* Logo - Hanya tampil di desktop */}
+      <div className="mb-10 hidden w-full justify-center md:flex">
+        <img src="/icons/logo.png" alt="Logo" className="h-auto w-[38px]" />
       </div>
 
-      <nav ref={navRef} className="relative flex w-full flex-col">
+      <nav ref={navRef} className="relative flex h-full w-full flex-row items-center justify-between md:h-auto md:flex-col">
+        
+        {/* --- INDICATOR MOBILE (Bottom Nav) --- */}
         <div
-          className="pointer-events-none absolute right-[-1px] z-[1] h-[clamp(82px,11.5vw,124px)] w-[clamp(45px,4.36vw,80px)] rounded-[clamp(36px,5vw,62px)_0_0_clamp(36px,5vw,62px)] bg-[#9BC19B] transition-[top] duration-300 [transition-timing-function:cubic-bezier(0.68,-0.55,0.265,1.55)] [--curve-w:clamp(29px,4.3vw,54px)] [--curve-h:clamp(25px,3.8vw,48px)]"
-          style={{ top: `${indicatorTop}px` }}
+          className="pointer-events-none absolute top-[-1px] z-[1] h-[50px] w-[76px] rounded-b-[32px] bg-[#9BC19B] transition-[left] duration-300 ease-in-out md:hidden"
+          style={{ left: `${indicatorStyle.left}px` }}
         >
-          <div className="absolute right-[clamp(-44px,-3.1vw,-26px)] top-[clamp(10px,1.4vw,16px)] z-[5] h-[clamp(58px,8.2vw,98px)] w-[clamp(58px,8.2vw,98px)] rounded-full bg-[#FEF9F3]" />
-          <div className="absolute right-0 top-[calc(var(--curve-h)*-1+1px)] h-[var(--curve-h)] w-[var(--curve-w)] [background-image:radial-gradient(circle_at_top_left,transparent_calc(var(--curve-w)-1px),#9BC19B_var(--curve-w))]" />
-          <div className="absolute bottom-[calc(var(--curve-h)*-1+1px)] right-0 h-[var(--curve-h)] w-[var(--curve-w)] [background-image:radial-gradient(circle_at_bottom_left,transparent_calc(var(--curve-w)-1px),#9BC19B_var(--curve-w))]" />
+          {/* Lingkaran dalam putih krem */}
+          <div className="absolute left-[12px] top-[-10px] z-[5] h-[52px] w-[52px] rounded-full bg-[#FEF9F3]" />
+          {/* Lekukan kiri */}
+          <div className="absolute left-[-24px] top-0 h-[24px] w-[24px] [background-image:radial-gradient(circle_at_bottom_left,transparent_23px,#9BC19B_24px)]" />
+          {/* Lekukan kanan */}
+          <div className="absolute right-[-24px] top-0 h-[24px] w-[24px] [background-image:radial-gradient(circle_at_bottom_right,transparent_23px,#9BC19B_24px)]" />
         </div>
 
+        {/* --- INDICATOR DESKTOP (Sidebar) --- */}
+        <div
+          className="pointer-events-none absolute right-[-1px] z-[1] hidden h-[80px] w-[50px] rounded-l-[32px] bg-[#9BC19B] transition-[top] duration-300 ease-in-out md:block"
+          style={{ top: `${indicatorStyle.top}px` }}
+        >
+          {/* Lingkaran dalam putih krem */}
+          <div className="absolute right-[-26px] top-[14px] z-[5] h-[52px] w-[52px] rounded-full bg-[#FEF9F3]" />
+          {/* Lekukan atas */}
+          <div className="absolute right-0 top-[-24px] h-[24px] w-[24px] [background-image:radial-gradient(circle_at_top_left,transparent_23px,#9BC19B_24px)]" />
+          {/* Lekukan bawah */}
+          <div className="absolute bottom-[-24px] right-0 h-[24px] w-[24px] [background-image:radial-gradient(circle_at_bottom_left,transparent_23px,#9BC19B_24px)]" />
+        </div>
+
+        {/* Navigasi Menu */}
         {navItems.map((item, index) => {
           const isActive = activeIndex === index;
 
@@ -85,14 +118,16 @@ const Sidebar = () => {
                 navItemRefs.current[index] = element;
               }}
               aria-label={item.name}
-              className="relative z-[2] flex h-[clamp(82px,11.5vw,124px)] w-full items-center justify-center"
+              className="relative z-[2] flex h-full w-[76px] items-center justify-center md:h-[80px] md:w-full"
             >
               <div
-                className={`flex h-[clamp(34px,4.7vw,62px)] w-[clamp(34px,4.7vw,62px)] items-center justify-center rounded-full transition-transform duration-300 [transition-timing-function:cubic-bezier(0.68,-0.55,0.265,1.55)] ${
-                  isActive ? 'translate-x-[clamp(34px,6vw,65px)] translate-y-[clamp(2px,0.35vw,5px)]' : ''
+                className={`flex h-[44px] w-[44px] items-center justify-center rounded-full transition-transform duration-300 ease-in-out ${
+                  isActive
+                    ? 'translate-y-[-24px] md:translate-x-[38px] md:translate-y-0' // Geser ke atas di HP, geser ke kanan di Desktop
+                    : 'hover:scale-110'
                 }`}
               >
-                <img src={item.icon} alt={item.alt} className={`${item.iconClass} h-auto`} />
+                <img src={item.icon} alt={item.alt} className={`${item.iconWidth} h-auto`} />
               </div>
             </NavLink>
           );

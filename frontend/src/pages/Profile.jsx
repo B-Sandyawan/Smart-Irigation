@@ -1,28 +1,18 @@
 import React, { useState } from 'react';
 import ProfileForm from './Profile/ProfileForm';
-import StreakVisualization from './Profile/StreakVisualization';
+// Catatan: Pastikan file/komponen ini benar-benar ada di folder ./Profile/
+// Jika StreakVisualization tidak dipakai (karena sudah digabung di file lain), bisa dihapus dari import
 import PlantInfoCard from './Profile/PlantInfoCard';
 import AchievementList from './Profile/AchievementList';
 
 /**
  * Profile Page Component
- * 
- * Halaman untuk menampilkan dan mengedit profil pengguna
+ * * Halaman untuk menampilkan dan mengedit profil pengguna
  * Layout: Two-column dengan:
  * - Kiri: Visualisasi tanaman kangkung + Streak chart (1/3 width)
  * - Kanan: Form profil pengguna (2/3 width)
- * 
- * Spesifikasi Visual Update (Figma Revision):
- * - Background Halaman: Hijau (#9BC19B)
- * - Form Container: Krem (#FFEDD9)
- * - Input Fields: Krem (#FFEDD9)
- * - Button Simpan: Hijau (#9BC19B)
- * - Button Logout: Terracotta Krem (#DF9F88)
- * - Judul Halaman: Krem Putih (#FEF9F3)
- * 
- * Components:
- * - ProfileForm: Sub-component untuk form
- * - StreakVisualization: Sub-component untuk area kiri (kangkung + streak)
+ * * Struktur disesuaikan dengan Dashboard:
+ * - Header fixed di atas, konten scrollable di bawahnya.
  */
 const Profile = () => {
   // ============================================================
@@ -72,15 +62,18 @@ const Profile = () => {
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // State untuk melacak scroll agar header bisa memiliki efek bayangan
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // ============================================================
   // EVENT HANDLERS
   // ============================================================
   
-  /**
-   * Handle input field changes
-   * Maintain controlled component state
-   */
+  const handleScroll = (e) => {
+    setIsScrolled(e.target.scrollTop > 5);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -89,10 +82,6 @@ const Profile = () => {
     }));
   };
 
-  /**
-   * Handle profile update submission
-   * Ready untuk integrasi backend/Supabase
-   */
   const handleUpdateProfile = (e) => {
     e.preventDefault();
     setIsUpdating(true);
@@ -111,10 +100,6 @@ const Profile = () => {
     }, 1000);
   };
 
-  /**
-   * Handle logout action
-   * Ready untuk integrasi backend/Supabase
-   */
   const handleLogout = (e) => {
     e.preventDefault();
     const confirmed = window.confirm('Apakah Anda yakin ingin logout?');
@@ -130,52 +115,69 @@ const Profile = () => {
   // RENDER
   // ============================================================
   return (
-    <div className="w-full min-h-screen bg-[#9BC19B] pt-3 pb-3 px-6 lg:px-8 font-['Montserrat']">
+    // Membungkus layar dengan h-screen dan overflow-hidden persis seperti Dashboard
+    <section className="flex h-screen flex-col bg-[#9BC19B] overflow-hidden font-sans">
       
       {/* ============================================================
-          HEADER SECTION
+          HEADER SECTION (FIXED AT TOP)
           ============================================================ */}
-      <div className="mb-2">
-        <h1 className="text-[#FEF9F3] text-[36px] font-['Montserrat'] font-bold leading-[1.2] tracking-tight">
-          Profil
-        </h1>
+      <div className={`shrink-0 z-20 px-4 pt-6 pb-4 sm:px-6 lg:px-8 transition-all duration-300 ${
+        isScrolled ? 'shadow-md bg-[#9BC19B]/95 backdrop-blur-sm border-b border-white/10' : ''
+      }`}>
+        {/* max-w-[980px] agar sejajar dengan konten dashboard */}
+        <div className="mx-auto w-full max-w-[980px]">
+          <h1 className="text-[26px] font-bold text-white tracking-wide drop-shadow-sm">
+            Profil
+          </h1>
+        </div>
       </div>
 
       {/* ============================================================
-          MAIN CONTENT - TWO COLUMN LAYOUT (ASYMMETRIC GRID)
+          SCROLLABLE AREA
           ============================================================ */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 max-w-7xl items-stretch">
-        
-        {/* ============================================================
-            LEFT COLUMN (1/3) - PLANT INFO + ACHIEVEMENTS
-            ============================================================ */}
-        <div className="col-span-12 md:col-span-4 max-w-sm flex flex-col gap-3">
-          <PlantInfoCard 
-            imageUrl={dummyData.plantImageUrl}
-            plantName={dummyData.plantName}
-            plantSubtitle={dummyData.plantSubtitle}
-            plantDescription={dummyData.plantDescription}
-          />
-          <AchievementList achievements={dummyData.achievements} />
-        </div>
+      <div 
+        className="flex-1 overflow-y-auto px-4 pb-12 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+        onScroll={handleScroll}
+      >
+        <div className="mx-auto flex h-full w-full max-w-[980px] flex-col pt-2 gap-8">
+          
+          {/* MAIN CONTENT GRID */}
+          {/* Menggunakan items-start agar kolom kiri tidak ikut melar memanjang ke bawah mengikuti form kanan */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
+            
+            {/* ============================================================
+                LEFT COLUMN (1/3) - PLANT INFO + ACHIEVEMENTS
+                ============================================================ */}
+            <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
+              <PlantInfoCard 
+                imageUrl={dummyData.plantImageUrl}
+                plantName={dummyData.plantName}
+                plantSubtitle={dummyData.plantSubtitle}
+                plantDescription={dummyData.plantDescription}
+              />
+              <AchievementList achievements={dummyData.achievements} />
+            </div>
 
-        {/* ============================================================
-            RIGHT COLUMN (2/3) - PROFILE FORM
-            ============================================================ */}
-        <div className="col-span-12 md:col-span-8">
-          <ProfileForm
-            formData={formData}
-            isUpdating={isUpdating}
-            successMessage={successMessage}
-            onchange={handleChange}
-            onUpdateProfile={handleUpdateProfile}
-            onLogout={handleLogout}
-          />
-        </div>
+            {/* ============================================================
+                RIGHT COLUMN (2/3) - PROFILE FORM
+                ============================================================ */}
+            <div className="col-span-12 md:col-span-8">
+              <ProfileForm
+                formData={formData}
+                isUpdating={isUpdating}
+                successMessage={successMessage}
+                onchange={handleChange}
+                onUpdateProfile={handleUpdateProfile}
+                onLogout={handleLogout}
+              />
+            </div>
 
+          </div>
+
+        </div>
       </div>
 
-    </div>
+    </section>
   );
 };
 
