@@ -3,6 +3,8 @@ import ProfileForm from './Profile/ProfileForm';
 
 import PlantInfoCard from './Profile/PlantInfoCard';
 import AchievementList from './Profile/AchievementList';
+import streakIcon from '../assets/profilIcon/Streak.svg';
+import clockIcon from '../assets/profilIcon/clock.svg';
 
 
 const Profile = () => {
@@ -12,9 +14,9 @@ const Profile = () => {
     plantImageUrl: "/src/assets/kankung.png",
     
     
-    namaLengkap: "Siaramyukk",
+    namaLengkap: "Siaramyuk",
     email: "siramyuk@gmail.com",
-    password: "••••••••",
+    password: "yuksiram!",
     
     plantName: "Kangkung",
     plantSubtitle: "Tanaman dalam kebunku",
@@ -23,19 +25,17 @@ const Profile = () => {
     achievements: [
       {
         id: 1,
-        icon: '🔥',
+        icon: streakIcon,
         title: 'Achievement Unlocked',
         description: '100 Days Streak of farming!',
-        titleColor: '#FF9500',
-        borderColor: '#FF9500',
+        titleColor: '#EA7F1D',
       },
       {
         id: 2,
-        icon: '🕐',
+        icon: clockIcon,
         title: 'Achievement Unlocked',
         description: 'Always Watering On Time!',
-        titleColor: '#0095FF',
-        borderColor: '#0095FF',
+        titleColor: '#2293FC',
       },
     ],
   };
@@ -98,15 +98,15 @@ const Profile = () => {
   
   return (
     
-    <section className="flex h-screen flex-col bg-[#9BC19B] overflow-hidden font-sans">
+    <section className="flex h-screen flex-col overflow-hidden bg-[#9BC19B] font-sans">
       
       
-      <div className={`shrink-0 z-20 px-4 pt-6 pb-4 sm:px-6 lg:px-8 transition-all duration-300 ${
+      <div className={`shrink-0 z-20 px-3 pt-6 pb-3 sm:px-5 lg:px-6 transition-all duration-300 ${
         isScrolled ? 'shadow-md bg-[#9BC19B]/95 backdrop-blur-sm border-b border-white/10' : ''
       }`}>
        
-        <div className="mx-auto w-full max-w-[980px]">
-          <h1 className="text-[26px] font-bold text-white tracking-wide drop-shadow-sm">
+        <div className="mx-auto w-full max-w-[1020px]">
+          <h1 className="text-[42px] font-bold text-white tracking-tight leading-none sm:text-[42px]">
             Profil
           </h1>
         </div>
@@ -114,16 +114,16 @@ const Profile = () => {
 
       
       <div 
-        className="flex-1 overflow-y-auto px-4 pb-12 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+        className="flex-1 overflow-y-auto px-3 pb-8 sm:px-5 lg:px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
         onScroll={handleScroll}
       >
-        <div className="mx-auto flex h-full w-full max-w-[980px] flex-col pt-2 gap-8">
+        <div className="mx-auto flex h-full w-full max-w-[1020px] flex-col gap-5 pt-1">
           
           
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
+          <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[260px_minmax(0,1fr)]">
             
             
-            <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
+            <div className="flex flex-col gap-3.5">
               <PlantInfoCard 
                 imageUrl={dummyData.plantImageUrl}
                 plantName={dummyData.plantName}
@@ -134,7 +134,7 @@ const Profile = () => {
             </div>
 
             
-            <div className="col-span-12 md:col-span-8">
+            <div className="min-h-[505px]">
               <ProfileForm
                 formData={formData}
                 isUpdating={isUpdating}
