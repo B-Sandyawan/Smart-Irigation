@@ -101,12 +101,12 @@ const Profile = () => {
     <section className="flex h-screen flex-col overflow-hidden bg-[#9BC19B] font-sans">
       
       
-      <div className={`shrink-0 z-20 px-3 pt-6 pb-3 sm:px-5 lg:px-6 transition-all duration-300 ${
+      <div className={`shrink-0 z-20 px-4 pt-6 pb-4 sm:px-6 lg:px-8 transition-all duration-300 ${
         isScrolled ? 'shadow-md bg-[#9BC19B]/95 backdrop-blur-sm border-b border-white/10' : ''
       }`}>
        
-        <div className="mx-auto w-full max-w-[1020px]">
-          <h1 className="text-[42px] font-bold text-white tracking-tight leading-none sm:text-[42px]">
+        <div className="mx-auto w-full max-w-[980px]">
+          <h1 className="text-[26px] font-bold text-white tracking-wide drop-shadow-sm">
             Profil
           </h1>
         </div>
@@ -114,10 +114,10 @@ const Profile = () => {
 
       
       <div 
-        className="flex-1 overflow-y-auto px-3 pb-8 sm:px-5 lg:px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+        className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
         onScroll={handleScroll}
       >
-        <div className="mx-auto flex h-full w-full max-w-[1020px] flex-col gap-5 pt-1">
+        <div className="mx-auto flex h-full w-full max-w-[980px] flex-col gap-5 pt-1">
           
           
           <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[260px_minmax(0,1fr)]">

@@ -42,21 +42,19 @@ const ProfileForm = ({
               type="email"
               name="email"
               value={formData.email}
-              onChange={onchange}
-              readOnly={false}
-              className="h-[34px] w-full rounded-[12px] border border-[#7A7672] bg-[#E8D9C5] px-3 text-[13px] font-medium text-[#222] focus:outline-none"
+              readOnly={true}
+              className="h-[34px] w-full rounded-[12px] border border-[#7A7672] bg-[#E8D9C5] px-3 text-[13px] font-medium text-[#7A7A7A] focus:outline-none cursor-not-allowed"
             />
           </div>
 
           <div className="flex flex-col gap-2">
             <label className="text-[14px] font-medium text-[#272727]">Password</label>
             <input
-              type="text"
+              type="password"
               name="password"
               value={formData.password}
-              onChange={onchange}
-              readOnly={false}
-              className="h-[34px] w-full rounded-[12px] border border-[#7A7672] bg-[#E8D9C5] px-3 text-[13px] font-medium text-[#222] focus:outline-none"
+              readOnly={true}
+              className="h-[34px] w-full rounded-[12px] border border-[#7A7672] bg-[#E8D9C5] px-3 text-[13px] font-medium text-[#7A7A7A] focus:outline-none cursor-not-allowed"
             />
           </div>
 
