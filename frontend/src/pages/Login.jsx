@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/auth'; // Sesuaikan path ini dengan lokasi file auth.js kamu
+import { authService } from '../services/auth'; 
 
-// ==========================================
-// ICONS
-// ==========================================
+
 const MessageIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="#2C2C2C" strokeWidth="2" xmlns="http://www.w3.org/2000/svg" className="w-[16px] h-[16px] sm:w-[20px] sm:h-[20px] shrink-0">
     <path d="M4 7.00005L10.2 11.65C11.2667 12.45 12.7333 12.45 13.8 11.65L20 7" strokeLinecap="round" strokeLinejoin="round"/>
@@ -40,9 +38,7 @@ const ShowIcon = ({ onClick }) => (
   </svg>
 );
 
-// ==========================================
-// MAIN COMPONENT
-// ==========================================
+
 const Login = () => {
   const navigate = useNavigate();
   
@@ -56,17 +52,23 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   
-  // Auth States
+  // Auth & Notification States
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [notif, setNotif] = useState({ show: false, message: '', type: '' });
+
+  const showNotification = (message, type) => {
+    setNotif({ show: true, message, type });
+    setTimeout(() => {
+      setNotif({ show: false, message: '', type: '' });
+    }, 3500);
+  };
 
   const toggleCard = () => {
     setIsLogin(!isLogin);
-    // Reset form & error saat ganti mode
     setEmail('');
     setPassword('');
     setFullName('');
-    setErrorMsg('');
+    setNotif({ show: false, message: '', type: '' });
   };
 
   const handleFormClick = (e) => {
@@ -76,33 +78,62 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setErrorMsg('');
+    setNotif({ show: false, message: '', type: '' });
     setLoading(true);
 
     try {
       if (isLogin) {
         await authService.login(email, password);
-        navigate('/'); // Redirect ke Dashboard jika berhasil
+        navigate('/'); 
       } else {
         await authService.register(email, password, fullName);
-        alert('Registrasi berhasil! Silakan masuk.');
-        toggleCard(); // Pindah ke form login
+        showNotification('Registrasi berhasil! Silakan masuk.', 'success');
+        setIsLogin(true); // Pindah ke form login
+        setEmail('');
+        setPassword('');
+        setFullName('');
       }
     } catch (error) {
-      setErrorMsg(error.message || 'Terjadi kesalahan');
+      showNotification(error.message || 'Terjadi kesalahan pada sistem', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center font-sans bg-[#FFFAF9] overflow-hidden px-4">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center font-sans bg-[#FFFAF9] overflow-hidden px-4">
       <style>{`
         input[type="password"]::-ms-reveal,
         input[type="password"]::-ms-clear {
           display: none;
         }
       `}</style>
+
+      
+      {notif.show && (
+        <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-[340px] bg-[#FFFAF9] border-[2px] border-[#2C2C2C] rounded-[16px] p-4 shadow-[4px_4px_0px_#2C2C2C] sm:shadow-[6px_6px_0px_#2C2C2C] flex items-center gap-4 transition-all duration-300 animate-bounce`}>
+          <div className={`w-10 h-10 rounded-full border-[1.5px] border-[#2C2C2C] flex items-center justify-center shrink-0 ${notif.type === 'error' ? 'bg-[#FFF0F0]' : 'bg-[#F0FFF4]'}`}>
+            {notif.type === 'error' ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B9567" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            )}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[#2C2C2C] font-bold text-[14px] sm:text-[15px]">
+              {notif.type === 'error' ? 'Pemberitahuan' : 'Berhasil'}
+            </span>
+            <span className="text-[#2C2C2C] text-[12px] sm:text-[13px] leading-tight mt-0.5">
+              {notif.message}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col items-center w-full max-w-[650px]">
         <div 
@@ -172,8 +203,6 @@ const Login = () => {
                     }
                   </div>
                 </div>
-                
-                {errorMsg && isLogin && <p className="text-red-500 text-xs mt-2 text-center">{errorMsg}</p>}
 
                 <button 
                   type="submit"
@@ -228,8 +257,6 @@ const Login = () => {
                     }
                   </div>
                 </div>
-                
-                {errorMsg && !isLogin && <p className="text-red-500 text-xs mt-2 text-center">{errorMsg}</p>}
 
                 <button 
                   type="submit"

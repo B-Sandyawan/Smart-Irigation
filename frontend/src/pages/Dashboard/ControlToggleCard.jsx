@@ -42,7 +42,7 @@ const ControlToggleCard = ({
         className="group absolute left-1/2 top-[65px] flex h-[100px] w-[100px] -translate-x-1/2 items-center justify-center rounded-full border-0 p-0 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_28px_rgba(0,0,0,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4B95674A]"
         style={{ backgroundColor: iconBgOuter, boxShadow: '0 4px 4px rgba(0, 0, 0, 0.25)' }}
         aria-pressed={isActive}
-        aria-label={`${title} ${isActive ? 'aktif' : 'nonaktif'}${isWaterMeter ? `, air ${Math.round(clampedAvailability)}%` : ''}`}
+        aria-label={`${title} ${isActive ? 'aktif' : 'nonaktif'}${isWaterMeter ? ', indikator air aktif' : ''}`}
       >
         <span
           className="relative z-10 flex h-[84px] w-[84px] items-center justify-center rounded-full transition-all duration-200 group-hover:scale-[1.015]"
@@ -96,11 +96,6 @@ const ControlToggleCard = ({
         {isActive ? 'Sedang Aktif' : 'Sedang Nonaktif'}
       </p>
 
-      {isWaterMeter ? (
-        <p className="absolute bottom-[12px] right-[16px] text-[12px] font-semibold leading-[1.2] text-[#163E8E]">
-          {Math.round(clampedAvailability)}%
-        </p>
-      ) : null}
     </section>
   );
 };

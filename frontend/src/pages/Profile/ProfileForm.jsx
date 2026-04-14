@@ -9,101 +9,80 @@ const ProfileForm = ({
   onLogout,
 }) => {
   return (
-    <div className="bg-white rounded-[24px] p-6 sm:p-8 shadow-sm w-full h-full flex flex-col font-sans">
+    <div className="flex h-full w-full flex-col rounded-[18px] border border-[#5D5A56] bg-[#F3F0EC] p-6 shadow-[0_3px_8px_rgba(0,0,0,0.22)] sm:p-8 font-sans">
       
       <form onSubmit={onUpdateProfile} className="w-full flex flex-col flex-1">
-        <h2 className="text-[#444] text-[22px] font-bold mb-6 tracking-tight border-b border-gray-100 pb-4">
+        <h2 className="mb-7 text-center text-[24px] font-bold tracking-tight text-[#334139]">
           Profil Pengguna
         </h2>
 
         {successMessage && (
-          <div className="w-full mb-6 p-3 bg-[#C3DBC9] rounded-xl text-[#385B38] text-[14px] font-bold text-center">
+          <div className="mx-auto mb-6 w-full max-w-[330px] rounded-[12px] bg-[#C3DBC9] p-3 text-center text-[14px] font-bold text-[#385B38]">
             ✓ {successMessage}
           </div>
         )}
 
-        <div className="space-y-5 mb-8 w-full">
+        <div className="mx-auto mb-8 w-full max-w-[330px] space-y-4">
           
           <div className="flex flex-col gap-2">
-            <label className="text-[#444] font-bold text-[14px]">
-              Nama Lengkap <span className="text-[#D9534F]">*</span>
-            </label>
+            <label className="text-[14px] font-medium text-[#272727]">Nama Lengkap</label>
             <input
               type="text"
               name="full_name"
               value={formData.full_name}
               onChange={onchange}
               required={true}
-              className="w-full h-[46px] px-4 bg-[#F9F9F9] border border-[#E5E5E5] rounded-xl text-[#444] text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#4B9567] focus:bg-white transition-colors"
+              className="h-[34px] w-full rounded-[12px] border border-[#7A7672] bg-[#E8D9C5] px-3 text-[13px] font-medium text-[#222] focus:outline-none"
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[#444] font-bold text-[14px]">
-              Email
-            </label>
+            <label className="text-[14px] font-medium text-[#272727]">Email</label>
             <input
               type="email"
               name="email"
               value={formData.email}
-              onChange={onchange}
               readOnly={true}
-              className="w-full h-[46px] px-4 bg-[#F2F2F2] border border-[#E5E5E5] rounded-xl text-[#999] text-[14px] font-medium cursor-not-allowed focus:outline-none"
+              className="h-[34px] w-full rounded-[12px] border border-[#7A7672] bg-[#E8D9C5] px-3 text-[13px] font-medium text-[#7A7A7A] focus:outline-none cursor-not-allowed"
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[#444] font-bold text-[14px]">
-              Password
-            </label>
+            <label className="text-[14px] font-medium text-[#272727]">Password</label>
             <input
               type="password"
               name="password"
               value={formData.password}
-              onChange={onchange}
               readOnly={true}
-              className="w-full h-[46px] px-4 bg-[#F2F2F2] border border-[#E5E5E5] rounded-xl text-[#999] text-[14px] font-medium tracking-widest cursor-not-allowed focus:outline-none"
+              className="h-[34px] w-full rounded-[12px] border border-[#7A7672] bg-[#E8D9C5] px-3 text-[13px] font-medium text-[#7A7A7A] focus:outline-none cursor-not-allowed"
             />
           </div>
 
         </div>
 
-        {/* Buttons Section */}
-        <div className="space-y-3 mt-auto w-full pt-4">
+        <div className="mx-auto mt-auto w-full max-w-[330px] pt-4">
           <button
             type="submit"
             disabled={isUpdating}
-            className="
-              w-full h-[46px] px-6
-              bg-[#4B9567] hover:bg-[#385B38] active:scale-[0.99]
-              text-white text-[15px] font-bold
-              rounded-xl
-              transition-all duration-300
-              disabled:opacity-60 disabled:cursor-not-allowed
-            "
+            className="h-[36px] w-full rounded-[12px] border border-[#5F6A5D] bg-[#94C094] px-6 text-[16px] font-bold text-[#121212] transition-colors hover:bg-[#88B788] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isUpdating ? 'Menyimpan...' : 'Simpan Perubahan'}
           </button>
 
+          <div className="my-8 h-px w-full bg-[#ACA59D]" />
+
           <button
             type="button"
             onClick={onLogout}
-            className="
-              w-full flex items-center justify-center gap-2
-              h-[46px] px-6
-              bg-[#FCEBEA] hover:bg-[#F8D7D6] active:scale-[0.99]
-              text-[#D9534F] text-[15px] font-bold
-              rounded-xl
-              transition-all duration-300
-            "
+            className="flex h-[68px] w-full items-center justify-center gap-2 rounded-[12px] border border-[#7F6054] bg-[#D79A83] px-6 text-[16px] font-bold text-[#141414] transition-colors hover:bg-[#CC907A]"
           >
             <svg
-              width="18"
-              height="18"
+              width="26"
+              height="26"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.5"
+              strokeWidth="2.1"
               strokeLinecap="round"
               strokeLinejoin="round"
               className="flex-shrink-0"

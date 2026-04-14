@@ -5,24 +5,30 @@ import { authService } from '../services/auth';
 import ProfileForm from './Profile/ProfileForm';
 import PlantInfoCard from './Profile/PlantInfoCard';
 import AchievementList from './Profile/AchievementList';
+import streakIcon from '../assets/profilIcon/Streak.svg';
+import clockIcon from '../assets/profilIcon/clock.svg';
 
 const Profile = () => {
   const navigate = useNavigate();
 
-  
   const dummyData = {
-    plantImageUrl: "/src/assets/kangkung.png", 
     plantName: "Kangkung",
     plantSubtitle: "Tanaman dalam kebunku",
     plantDescription: "Kangkung adalah tanaman sayuran hijau yang tumbuh cepat dan banyak ditemukan di daerah berair.",
     achievements: [
       {
-        id: 1, icon: '🔥', title: 'Achievement Unlocked', description: '100 Days Streak of farming!',
-        titleColor: '#FF9500', borderColor: '#FF9500',
+        id: 1,
+        icon: streakIcon,
+        title: 'Achievement Unlocked',
+        description: '100 Days Streak of farming!',
+        titleColor: '#EA7F1D',
       },
       {
-        id: 2, icon: '🕐', title: 'Achievement Unlocked', description: 'Always Watering On Time!',
-        titleColor: '#0095FF', borderColor: '#0095FF',
+        id: 2,
+        icon: clockIcon,
+        title: 'Achievement Unlocked',
+        description: 'Always Watering On Time!',
+        titleColor: '#2293FC',
       },
     ],
   };
@@ -36,10 +42,20 @@ const Profile = () => {
 
   const [userId, setUserId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
+  
+  // Custom Notification & Modal States
+  const [notif, setNotif] = useState({ show: false, message: '', type: '' });
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // Ambil data profil dari Supabase saat komponen di-load
+
+  const showNotification = (message, type) => {
+    setNotif({ show: true, message, type });
+    setTimeout(() => {
+      setNotif({ show: false, message: '', type: '' });
+    }, 3500);
+  };
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -47,16 +63,15 @@ const Profile = () => {
         
         if (user) {
           setUserId(user.id);
-          // Ambil dari authService (tabel profiles)
           const profile = await authService.getProfile(user.id);
           
           setFormData({
             full_name: profile.full_name || '',
             email: user.email,
-            password: '', // Kosongkan demi keamanan, ubah jika ada fitur update password spesifik
+            password: '', 
           });
         } else {
-          navigate('/login'); // Lempar ke login jika tidak ada session
+          navigate('/login'); 
         }
       } catch (error) {
         console.error('Gagal mengambil data profil:', error.message);
@@ -78,16 +93,14 @@ const Profile = () => {
     }));
   };
 
-  // Update profil ke Supabase
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setIsUpdating(true);
-    setSuccessMessage('');
+    setNotif({ show: false, message: '', type: '' });
 
     try {
       if (!userId) return;
 
-      // Update data di tabel profiles
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ full_name: formData.full_name })
@@ -95,53 +108,118 @@ const Profile = () => {
 
       if (profileError) throw profileError;
 
-      setSuccessMessage('Profil berhasil diperbarui!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      showNotification('Profil berhasil diperbarui!', 'success');
     } catch (error) {
-      console.error('Error saat update profil:', error.message);
-      alert('Gagal update profil: ' + error.message);
+      showNotification('Gagal update profil: ' + error.message, 'error');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const handleLogout = async (e) => {
+  // Trigger Logout Modal
+  const handleLogoutClick = (e) => {
     e.preventDefault();
-    const confirmed = window.confirm('Apakah Anda yakin ingin logout?');
-    
-    if (confirmed) {
-      try {
-        await authService.logout();
-        navigate('/login');
-      } catch (error) {
-        console.error('Error logout:', error.message);
-        alert('Gagal logout!');
-      }
+    setShowLogoutModal(true);
+  };
+
+  // Eksekusi Logout
+  const confirmLogout = async () => {
+    try {
+      await authService.logout();
+      navigate('/login');
+    } catch (error) {
+      showNotification('Gagal logout sistem!', 'error');
+      setShowLogoutModal(false);
     }
   };
 
   return (
-    <section className="flex h-screen flex-col bg-[#9BC19B] overflow-hidden font-sans">
+    <section className="relative flex h-screen flex-col overflow-hidden bg-[#9BC19B] font-sans">
       
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#2C2C2C]/40 backdrop-blur-sm px-4 transition-opacity duration-300">
+          <div className="bg-[#FFFAF9] border-[1.5px] sm:border-[2px] border-[#2C2C2C] rounded-[16px] p-6 w-full max-w-[340px] shadow-[4px_4px_0px_#2C2C2C] sm:shadow-[6px_6px_0px_#2C2C2C] transform transition-transform duration-300">
+            
+            <div className="mx-auto w-12 h-12 bg-[#FFF0F0] border-[1.5px] border-[#2C2C2C] rounded-full flex items-center justify-center mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </div>
+
+            <h3 className="text-[#2C2C2C] text-[18px] sm:text-[20px] font-bold mb-2 text-center">
+              Keluar Akun?
+            </h3>
+            <p className="text-[#2C2C2C] text-[13px] sm:text-[14px] text-center mb-6">
+              Apakah kamu yakin ingin keluar dari akun ini? Kamu harus login kembali untuk masuk.
+            </p>
+            
+            <div className="flex items-center gap-3 w-full">
+              <button 
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 h-[40px] sm:h-[44px] bg-transparent border-[1.5px] border-[#2C2C2C] rounded-[10px] sm:rounded-[12px] text-[#2C2C2C] text-[13px] sm:text-[14px] font-medium hover:bg-[#EBEBEB] active:scale-95 transition-all duration-200"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={confirmLogout}
+                className="flex-1 h-[40px] sm:h-[44px] bg-[#EEDACF] border-[1.5px] border-[#2C2C2C] rounded-[10px] sm:rounded-[12px] text-[#2C2C2C] text-[13px] sm:text-[14px] font-medium hover:bg-[#e4ceb9] active:scale-95 transition-all duration-200"
+              >
+                Ya, Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {notif.show && (
+        <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-[340px] bg-[#FFFAF9] border-[2px] border-[#2C2C2C] rounded-[16px] p-4 shadow-[4px_4px_0px_#2C2C2C] sm:shadow-[6px_6px_0px_#2C2C2C] flex items-center gap-4 transition-all duration-300 animate-bounce`}>
+          <div className={`w-10 h-10 rounded-full border-[1.5px] border-[#2C2C2C] flex items-center justify-center shrink-0 ${notif.type === 'error' ? 'bg-[#FFF0F0]' : 'bg-[#F0FFF4]'}`}>
+            {notif.type === 'error' ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B9567" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            )}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[#2C2C2C] font-bold text-[14px] sm:text-[15px]">
+              {notif.type === 'error' ? 'Pemberitahuan' : 'Berhasil'}
+            </span>
+            <span className="text-[#2C2C2C] text-[12px] sm:text-[13px] leading-tight mt-0.5">
+              {notif.message}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* HEADER */}
       <div className={`shrink-0 z-20 px-4 pt-6 pb-4 sm:px-6 lg:px-8 transition-all duration-300 ${
         isScrolled ? 'shadow-md bg-[#9BC19B]/95 backdrop-blur-sm border-b border-white/10' : ''
       }`}>
         <div className="mx-auto w-full max-w-[980px]">
-          <h1 className="text-[26px] font-bold text-white tracking-wide drop-shadow-sm">
+          <h1 className="text-[26px] font-bold text-[#FFFAF9] tracking-wide drop-shadow-sm">
             Profil
           </h1>
         </div>
       </div>
 
+      {/* BODY CONTENT */}
       <div 
-        className="flex-1 overflow-y-auto px-4 pb-12 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+        className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
         onScroll={handleScroll}
       >
-        <div className="mx-auto flex h-full w-full max-w-[980px] flex-col pt-2 gap-8">
+        <div className="mx-auto flex h-full w-full max-w-[980px] flex-col gap-5 pt-1">
           
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
+          <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[260px_minmax(0,1fr)]">
             
-            <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
+            {/* Card & Achievement */}
+            <div className="flex flex-col gap-3.5">
               <PlantInfoCard 
                 imageUrl={dummyData.plantImageUrl}
                 plantName={dummyData.plantName}
@@ -151,14 +229,15 @@ const Profile = () => {
               <AchievementList achievements={dummyData.achievements} />
             </div>
 
-            <div className="col-span-12 md:col-span-8">
+            {/* Form */}
+            <div className="min-h-[505px] w-full">
               <ProfileForm
                 formData={formData}
                 isUpdating={isUpdating}
-                successMessage={successMessage}
+                successMessage="" 
                 onchange={handleChange}
                 onUpdateProfile={handleUpdateProfile}
-                onLogout={handleLogout}
+                onLogout={handleLogoutClick} 
               />
             </div>
 
