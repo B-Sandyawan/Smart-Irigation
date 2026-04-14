@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from '../services/auth'; 
 
 
 const MessageIcon = () => (
@@ -36,23 +38,70 @@ const ShowIcon = ({ onClick }) => (
   </svg>
 );
 
+
 const Login = () => {
+  const navigate = useNavigate();
+  
+  // UI States
   const [isLogin, setIsLogin] = useState(true);
   const [showLoginPass, setShowLoginPass] = useState(false);
   const [showRegPass, setShowRegPass] = useState(false);
 
+  // Form States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  
+  // Auth & Notification States
+  const [loading, setLoading] = useState(false);
+  const [notif, setNotif] = useState({ show: false, message: '', type: '' });
+
+  const showNotification = (message, type) => {
+    setNotif({ show: true, message, type });
+    setTimeout(() => {
+      setNotif({ show: false, message: '', type: '' });
+    }, 3500);
+  };
+
   const toggleCard = () => {
     setIsLogin(!isLogin);
+    setEmail('');
+    setPassword('');
+    setFullName('');
+    setNotif({ show: false, message: '', type: '' });
   };
 
   const handleFormClick = (e) => {
     e.stopPropagation();
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setNotif({ show: false, message: '', type: '' });
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        await authService.login(email, password);
+        navigate('/'); 
+      } else {
+        await authService.register(email, password, fullName);
+        showNotification('Registrasi berhasil! Silakan masuk.', 'success');
+        setIsLogin(true); // Pindah ke form login
+        setEmail('');
+        setPassword('');
+        setFullName('');
+      }
+    } catch (error) {
+      showNotification(error.message || 'Terjadi kesalahan pada sistem', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center font-sans bg-[#FFFAF9] overflow-hidden px-4">
-      
-     
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center font-sans bg-[#FFFAF9] overflow-hidden px-4">
       <style>{`
         input[type="password"]::-ms-reveal,
         input[type="password"]::-ms-clear {
@@ -61,14 +110,36 @@ const Login = () => {
       `}</style>
 
       
+      {notif.show && (
+        <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-[340px] bg-[#FFFAF9] border-[2px] border-[#2C2C2C] rounded-[16px] p-4 shadow-[4px_4px_0px_#2C2C2C] sm:shadow-[6px_6px_0px_#2C2C2C] flex items-center gap-4 transition-all duration-300 animate-bounce`}>
+          <div className={`w-10 h-10 rounded-full border-[1.5px] border-[#2C2C2C] flex items-center justify-center shrink-0 ${notif.type === 'error' ? 'bg-[#FFF0F0]' : 'bg-[#F0FFF4]'}`}>
+            {notif.type === 'error' ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B9567" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            )}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[#2C2C2C] font-bold text-[14px] sm:text-[15px]">
+              {notif.type === 'error' ? 'Pemberitahuan' : 'Berhasil'}
+            </span>
+            <span className="text-[#2C2C2C] text-[12px] sm:text-[13px] leading-tight mt-0.5">
+              {notif.message}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col items-center w-full max-w-[650px]">
-        
-        {/* CARD CONTAINER */}
         <div 
           className="relative w-full aspect-[1.1] sm:aspect-[1.35] cursor-pointer"
           onClick={toggleCard}
         >
-          
           <img 
             src="/card-shadow.svg" 
             alt="Shadow Card" 
@@ -90,7 +161,6 @@ const Login = () => {
               >
                 Masuk
               </h1>
-              
               <h1 
                 onClick={(e) => { e.stopPropagation(); toggleCard(); }}
                 className={`absolute top-0 text-[22px] sm:text-[32px] text-[#2C2C2C] font-normal border-b-[1.5px] sm:border-b-[2px] border-[#2C2C2C] pb-0.5 sm:pb-1 pointer-events-auto cursor-pointer transition-all duration-500 ease-in-out ${!isLogin ? 'right-0 opacity-100' : 'right-[-20px] opacity-0 pointer-events-none'}`}
@@ -103,14 +173,16 @@ const Login = () => {
             <div className="absolute top-[34%] sm:top-[36%] bottom-[10%] sm:bottom-[12%] left-[10%] right-[10%]">
               
               {/* Wrapper Form Masuk */}
-              <div className={`absolute inset-0 flex flex-col h-full transition-all duration-500 ease-in-out ${isLogin ? 'opacity-100 translate-y-0 pointer-events-auto z-10' : 'opacity-0 translate-y-[20px] pointer-events-none z-0'}`}>
+              <form onSubmit={handleSubmit} className={`absolute inset-0 flex flex-col h-full transition-all duration-500 ease-in-out ${isLogin ? 'opacity-100 translate-y-0 pointer-events-auto z-10' : 'opacity-0 translate-y-[20px] pointer-events-none z-0'}`}>
                 <div className="flex flex-col gap-2.5 sm:gap-4">
-                  
                   <div onClick={handleFormClick} className="h-[34px] sm:h-[48px] bg-[#FFFAF9] border border-[#2C2C2C] rounded-[8px] sm:rounded-[12px] px-3 sm:px-4 flex items-center gap-2.5 sm:gap-4 cursor-text hover:shadow-sm focus-within:shadow-md transition-shadow">
                     <MessageIcon />
                     <input 
                       type="email" 
                       placeholder="Masukkan email" 
+                      value={isLogin ? email : ''}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
                       className="w-full h-full bg-transparent outline-none text-[#2C2C2C] text-[12px] sm:text-[15px] placeholder:text-[12px] sm:placeholder:text-[15px]"
                     />
                   </div>
@@ -120,6 +192,9 @@ const Login = () => {
                     <input 
                       type={showLoginPass ? "text" : "password"} 
                       placeholder="Masukkan kata sandi" 
+                      value={isLogin ? password : ''}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
                       className="w-full h-full bg-transparent outline-none text-[#2C2C2C] text-[12px] sm:text-[15px] placeholder:text-[12px] sm:placeholder:text-[15px]"
                     />
                     {showLoginPass 
@@ -127,27 +202,29 @@ const Login = () => {
                       : <HideIcon onClick={() => setShowLoginPass(true)} />
                     }
                   </div>
-
                 </div>
-                
-               
+
                 <button 
+                  type="submit"
+                  disabled={loading}
                   onClick={handleFormClick} 
-                  className="w-full h-[36px] sm:h-[50px] bg-[#EEDACF] border border-[#2C2C2C] rounded-[10px] sm:rounded-[16px] text-[#2C2C2C] text-[13px] sm:text-[16px] font-normal hover:bg-[#e4ceb9] active:scale-[0.98] transition-all duration-200 mt-auto"
+                  className="w-full h-[36px] sm:h-[50px] bg-[#EEDACF] border border-[#2C2C2C] rounded-[10px] sm:rounded-[16px] text-[#2C2C2C] text-[13px] sm:text-[16px] font-normal hover:bg-[#e4ceb9] active:scale-[0.98] transition-all duration-200 mt-auto disabled:opacity-50"
                 >
-                  Masuk
+                  {loading ? 'Memproses...' : 'Masuk'}
                 </button>
-              </div>
+              </form>
 
               {/* Wrapper Form Daftar */}
-              <div className={`absolute inset-0 flex flex-col h-full transition-all duration-500 ease-in-out ${!isLogin ? 'opacity-100 translate-y-0 pointer-events-auto z-10' : 'opacity-0 translate-y-[20px] pointer-events-none z-0'}`}>
+              <form onSubmit={handleSubmit} className={`absolute inset-0 flex flex-col h-full transition-all duration-500 ease-in-out ${!isLogin ? 'opacity-100 translate-y-0 pointer-events-auto z-10' : 'opacity-0 translate-y-[20px] pointer-events-none z-0'}`}>
                 <div className="flex flex-col gap-1.5 sm:gap-3">
-                  
                   <div onClick={handleFormClick} className="h-[34px] sm:h-[48px] bg-[#FFFAF9] border border-[#2C2C2C] rounded-[8px] sm:rounded-[12px] px-3 sm:px-4 flex items-center gap-2.5 sm:gap-4 cursor-text hover:shadow-sm focus-within:shadow-md transition-shadow">
                     <UserIcon />
                     <input 
                       type="text" 
                       placeholder="Masukkan nama" 
+                      value={!isLogin ? fullName : ''}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
                       className="w-full h-full bg-transparent outline-none text-[#2C2C2C] text-[12px] sm:text-[15px] placeholder:text-[12px] sm:placeholder:text-[15px]"
                     />
                   </div>
@@ -157,6 +234,9 @@ const Login = () => {
                     <input 
                       type="email" 
                       placeholder="Masukkan email" 
+                      value={!isLogin ? email : ''}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
                       className="w-full h-full bg-transparent outline-none text-[#2C2C2C] text-[12px] sm:text-[15px] placeholder:text-[12px] sm:placeholder:text-[15px]"
                     />
                   </div>
@@ -166,6 +246,9 @@ const Login = () => {
                     <input 
                       type={showRegPass ? "text" : "password"} 
                       placeholder="Masukkan kata sandi" 
+                      value={!isLogin ? password : ''}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
                       className="w-full h-full bg-transparent outline-none text-[#2C2C2C] text-[12px] sm:text-[15px] placeholder:text-[12px] sm:placeholder:text-[15px]"
                     />
                     {showRegPass 
@@ -173,22 +256,22 @@ const Login = () => {
                       : <HideIcon onClick={() => setShowRegPass(true)} />
                     }
                   </div>
-
                 </div>
-                
+
                 <button 
+                  type="submit"
+                  disabled={loading}
                   onClick={handleFormClick} 
-                  className="w-full h-[36px] sm:h-[50px] bg-[#EEDACF] border border-[#2C2C2C] rounded-[10px] sm:rounded-[16px] text-[#2C2C2C] text-[13px] sm:text-[16px] font-normal hover:bg-[#e4ceb9] active:scale-[0.98] transition-all duration-200 mt-auto"
+                  className="w-full h-[36px] sm:h-[50px] bg-[#EEDACF] border border-[#2C2C2C] rounded-[10px] sm:rounded-[16px] text-[#2C2C2C] text-[13px] sm:text-[16px] font-normal hover:bg-[#e4ceb9] active:scale-[0.98] transition-all duration-200 mt-auto disabled:opacity-50"
                 >
-                  Daftar
+                  {loading ? 'Memproses...' : 'Daftar'}
                 </button>
-              </div>
+              </form>
 
             </div>
           </div>
         </div>
 
-       
         <div className="mt-5 sm:mt-8 flex items-center gap-3 sm:gap-4 z-20">
           <span className="text-[12px] sm:text-[14px] text-[#2C2C2C] font-normal transition-opacity duration-300">
             {isLogin ? 'Belum punya akun?' : 'Sudah punya akun?'}
