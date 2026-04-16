@@ -1,7 +1,20 @@
 import { supabase } from '../lib/supabaseClient';
 
+const AUTH_ERROR_MESSAGES = {
+  'Invalid login credentials': 'Email atau kata sandi salah.',
+  'Email not confirmed': 'Email belum diverifikasi. Silakan cek inbox Anda.',
+  'User already registered': 'Email sudah terdaftar. Silakan login.',
+};
+
+const formatAuthError = (error) => {
+  const message = error?.message || 'Terjadi kesalahan pada sistem.';
+  return AUTH_ERROR_MESSAGES[message] || message;
+};
+
 export const authService = {
-  // 1. Fungsi Register
+  formatAuthError,
+
+  // Register user baru.
   register: async (email, password, fullName) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -14,7 +27,7 @@ export const authService = {
     return data;
   },
 
-  // 2. Fungsi Login
+  // Login menggunakan email + password.
   login: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -24,7 +37,7 @@ export const authService = {
     return data;
   },
 
-  // 3. Fungsi Get Profile
+  // Ambil profil user yang sedang aktif.
   getProfile: async (userId) => {
     const { data, error } = await supabase
       .from('profiles')
@@ -36,7 +49,7 @@ export const authService = {
     return data;
   },
 
-  // 4. Fungsi Logout
+  // Logout user saat ini.
   logout: async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient'; 
 import { authService } from '../services/auth'; 
+import { useAuth } from '../hooks/useAuth';
 import ProfileForm from './Profile/ProfileForm';
 import PlantInfoCard from './Profile/PlantInfoCard';
 import AchievementList from './Profile/AchievementList';
@@ -10,6 +11,7 @@ import clockIcon from '../assets/profilIcon/clock.svg';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const dummyData = {
     plantName: "Kangkung",
@@ -59,27 +61,23 @@ const Profile = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          setUserId(user.id);
-          const profile = await authService.getProfile(user.id);
-          
-          setFormData({
-            full_name: profile.full_name || '',
-            email: user.email,
-            password: '', 
-          });
-        } else {
-          navigate('/login'); 
-        }
+        if (!user) return;
+
+        setUserId(user.id);
+        const profile = await authService.getProfile(user.id);
+
+        setFormData({
+          full_name: profile.full_name || '',
+          email: user.email || '',
+          password: '', 
+        });
       } catch (error) {
         console.error('Gagal mengambil data profil:', error.message);
       }
     };
 
     fetchUserProfile();
-  }, [navigate]);
+  }, [user]);
 
   const handleScroll = (e) => {
     setIsScrolled(e.target.scrollTop > 5);
@@ -127,7 +125,7 @@ const Profile = () => {
     try {
       await authService.logout();
       navigate('/login');
-    } catch (error) {
+    } catch {
       showNotification('Gagal logout sistem!', 'error');
       setShowLogoutModal(false);
     }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import ControlToggleCard from './ControlToggleCard';
 import StatusInfoCard from './StatusInfoCard';
 import nutrisiIcon from '../../assets/dashboard-icons/nutrisi.svg';
@@ -150,20 +150,12 @@ const DashboardPage = () => {
     cahaya: 90
   });
   
-  const waterAutoOffRef = useRef(null);
-  
   // Perhitungan grafik donat dibesarkan kembali agar prominent sebagai titik fokus
   const summaryPercentage = Number.parseInt(summaryState.score, 10) || 0;
   const ringRadius = 66; 
   const ringStroke = 14; 
   const progressCircumference = 2 * Math.PI * ringRadius;
   const progressOffset = progressCircumference * (1 - summaryPercentage / 100);
-
-  useEffect(() => {
-    return () => {
-      if (waterAutoOffRef.current) clearTimeout(waterAutoOffRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     const refillInterval = setInterval(() => {
@@ -176,49 +168,54 @@ const DashboardPage = () => {
     return () => clearInterval(refillInterval);
   }, [isWaterActive]);
 
-  const handleWaterToggle = () => {
+  useEffect(() => {
+    if (!isWaterActive) return undefined;
+
+    const timeoutId = setTimeout(() => {
+      setIsWaterActive(false);
+    }, 5000);
+
+    return () => clearTimeout(timeoutId);
+  }, [isWaterActive]);
+
+  const handleWaterToggle = useCallback(() => {
     if (isWaterActive || waterAvailability <= 0) return;
     setIsWaterActive(true);
     setWaterAvailability((prev) => Math.max(0, prev - 8));
-    if (waterAutoOffRef.current) clearTimeout(waterAutoOffRef.current);
-    
-    waterAutoOffRef.current = setTimeout(() => {
-      setIsWaterActive(false);
-      waterAutoOffRef.current = null;
-    }, 5000);
-  };
+  }, [isWaterActive, waterAvailability]);
 
-  const controlCards = useMemo(() => {
-    const water = dashboardDummyData.controls.water;
-    const vent = dashboardDummyData.controls.vent;
+  const handleVentToggle = useCallback(() => {
+    setIsVentActive((prev) => !prev);
+  }, []);
 
-    return [
-      {
-        key: 'water',
-        title: water.title,
-        subtitle: isWaterActive ? water.activeText : water.readyText,
-        isActive: isWaterActive,
-        accentColor: isWaterActive ? water.accentOn : water.accentOff,
-        iconType: water.iconType,
-        iconBgOuter: water.iconBgOuter,
-        iconBgInner: water.iconBgInner,
-        availabilityPercent: waterAvailability,
-        onToggle: handleWaterToggle
-      },
-      {
-        key: 'vent',
-        title: vent.title,
-        subtitle: isVentActive ? vent.activeText : vent.readyText,
-        isActive: isVentActive,
-        accentColor: isVentActive ? vent.accentOn : vent.accentOff,
-        iconType: vent.iconType,
-        iconBgOuter: vent.iconBgOuter,
-        iconBgInner: vent.iconBgInner,
-        availabilityPercent: null,
-        onToggle: () => setIsVentActive((prev) => !prev)
-      }
-    ];
-  }, [isVentActive, isWaterActive, waterAvailability]);
+  const waterControl = dashboardDummyData.controls.water;
+  const ventControl = dashboardDummyData.controls.vent;
+  const controlCards = [
+    {
+      key: 'water',
+      title: waterControl.title,
+      subtitle: isWaterActive ? waterControl.activeText : waterControl.readyText,
+      isActive: isWaterActive,
+      accentColor: isWaterActive ? waterControl.accentOn : waterControl.accentOff,
+      iconType: waterControl.iconType,
+      iconBgOuter: waterControl.iconBgOuter,
+      iconBgInner: waterControl.iconBgInner,
+      availabilityPercent: waterAvailability,
+      onToggle: handleWaterToggle,
+    },
+    {
+      key: 'vent',
+      title: ventControl.title,
+      subtitle: isVentActive ? ventControl.activeText : ventControl.readyText,
+      isActive: isVentActive,
+      accentColor: isVentActive ? ventControl.accentOn : ventControl.accentOff,
+      iconType: ventControl.iconType,
+      iconBgOuter: ventControl.iconBgOuter,
+      iconBgInner: ventControl.iconBgInner,
+      availabilityPercent: null,
+      onToggle: handleVentToggle,
+    },
+  ];
 
   const simulateUpdate = () => {
     const percentage = Math.floor(Math.random() * (98 - 78 + 1)) + 78;

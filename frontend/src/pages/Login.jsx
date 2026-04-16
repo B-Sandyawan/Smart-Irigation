@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { authService } from '../services/auth'; 
 
 
@@ -41,6 +41,8 @@ const ShowIcon = ({ onClick }) => (
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectAfterLogin = location.state?.from?.pathname || '/';
   
   // UI States
   const [isLogin, setIsLogin] = useState(true);
@@ -84,17 +86,23 @@ const Login = () => {
     try {
       if (isLogin) {
         await authService.login(email, password);
-        navigate('/'); 
+        navigate(redirectAfterLogin, { replace: true }); 
       } else {
-        await authService.register(email, password, fullName);
-        showNotification('Registrasi berhasil! Silakan masuk.', 'success');
-        setIsLogin(true); // Pindah ke form login
-        setEmail('');
-        setPassword('');
-        setFullName('');
+        const result = await authService.register(email, password, fullName);
+
+        if (result?.session) {
+          showNotification('Registrasi berhasil! Anda langsung masuk.', 'success');
+          navigate('/', { replace: true });
+        } else {
+          showNotification('Registrasi berhasil! Cek email verifikasi lalu masuk.', 'success');
+          setIsLogin(true);
+          setEmail('');
+          setPassword('');
+          setFullName('');
+        }
       }
     } catch (error) {
-      showNotification(error.message || 'Terjadi kesalahan pada sistem', 'error');
+      showNotification(authService.formatAuthError(error), 'error');
     } finally {
       setLoading(false);
     }
