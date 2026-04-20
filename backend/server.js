@@ -3,9 +3,11 @@ require('dotenv').config();
 const mqtt = require('mqtt');
 const { createClient } = require('@supabase/supabase-js');
 
+const { calculatePlantScore } = require('./scoring');
+
 const config = {
   supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  // Gunakan SERVICE ROLE KEY untuk proses backend agar tidak tergantung sesi user login.
+  
   supabaseKey:
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
@@ -127,7 +129,7 @@ async function bootstrap() {
   });
 
   mqttClient.on('error', (error) => {
-    // Jangan throw di sini agar proses bridge tidak crash total.
+    
     console.error('[MQTT] Error client:', error.message);
   });
 
@@ -136,10 +138,18 @@ async function bootstrap() {
 
     try {
       const row = parseSensorPayload(rawPayload);
+
+      // Proses hitung skor dan status
+      const { score, status } = calculatePlantScore(row, 'KANGKUNG');
+      
+      row.plant_score = score;
+      row.health_status = status;
+
       await insertSensorData(supabase, row);
 
+      // Update log terminal untuk menampilkan skor 
       console.log(
-        `[BRIDGE] Data tersimpan dari topic ${topic}: suhu=${row.suhu}, kelembaban=${row.kelembaban}, soil=${row.soil}, tds=${row.tds}, ldr=${row.ldr}`
+        `[BRIDGE] Data tersimpan dari topic ${topic}: suhu=${row.suhu}, kelembaban=${row.kelembaban}, soil=${row.soil}, tds=${row.tds}, ldr=${row.ldr} | SKOR: ${row.plant_score} (${row.health_status})`
       );
     } catch (error) {
       console.error(`[BRIDGE] Gagal memproses message dari topic ${topic}:`, error.message);
