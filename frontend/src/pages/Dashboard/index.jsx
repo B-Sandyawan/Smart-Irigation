@@ -6,9 +6,10 @@ import suhuFillIcon from '../../assets/dashboard-icons/suhu-vector-1.png';
 import suhuOutlineIcon from '../../assets/dashboard-icons/suhu-vector-2.png';
 import cahayaIcon from '../../assets/dashboard-icons/cahaya.png';
 
+import { supabase } from '../../lib/supabaseClient'; 
+
 const dashboardDummyData = {
   title: 'Dashboard',
-  lastUpdated: '02.00',
   controls: {
     water: {
       title: 'Tombol Penyiram Air',
@@ -33,50 +34,35 @@ const dashboardDummyData = {
       iconType: 'vent',
       initiallyActive: true
     }
-  },
-  summary: {
-    score: '90%',
-    level: 'Sangat Baik',
-    note: 'Tanaman dalam kondisi sangat baik. Namun perhatikan nutrisi pupuk yang masih optimal.'
-  },
-  summaryNotes: [
-    'Tanaman dalam kondisi sangat baik. Namun perhatikan nutrisi pupuk yang masih optimal.',
-    'Kelembapan stabil. Ventilasi dan penyiraman berjalan sesuai pola dummy saat ini.',
-    'Kondisi aman. Simulasi menunjukkan pertumbuhan konsisten dalam 24 jam terakhir.'
-  ],
+  }
 };
 
-const getTemperatureTone = (value) => (value >= 20 && value <= 30 ? 'good' : 'bad');
-const getLightTone = (value) => (value >= 40 && value <= 90 ? 'good' : 'dim');
+// SESUAIKAN TONE DENGAN RENTANG SENSOR ASLI
+const getTemperatureTone = (value) => (value >= 25 && value <= 30 ? 'good' : 'bad'); // Kangkung 25-30C
+const getLightTone = (value) => (value >= 400 && value <= 800 ? 'good' : 'dim'); // LDR 400-800
 const getSoilTone = (value) => {
-  if (value >= 80 && value <= 90) {
-    return 'wet';
-  }
-
-  if (value >= 10 && value <= 40) {
-    return 'dry';
-  }
-
+  if (value > 80) return 'wet';
+  if (value < 60) return 'dry';
   return 'stable';
 };
 
 const statusCardTemplates = [
   {
     id: 'nutrisi',
-    label: 'Nutrisi Pupuk',
+    label: 'Nutrisi Pupuk (TDS)',
     labelColor: '#C4A884',
     valueColor: '#132A58',
     iconSrc: nutrisiIcon,
     iconAlt: 'Ikon nutrisi pupuk',
-    iconSize: 44, // Diperkecil agar elemen dalam card tidak raksasa
+    iconSize: 44, 
     iconBg: '#C3DBC9',
-    metricKey: 'nutrisi',
-    formatValue: (value) => `${value}%`,
+    metricKey: 'nutrisi', // Di-mapping dari TDS
+    formatValue: (value) => `${value} ppm`, // Ubah jadi ppm (bukan %)
     accentFromTone: () => '#C4A884',
     noteFromValue: (value) => {
-      if (value >= 90) return 'Nutrisi sangat baik';
-      if (value >= 80) return 'Nutrisi cukup baik';
-      return 'Nutrisi perlu ditingkatkan';
+      if (value >= 800 && value <= 1200) return 'Nutrisi sangat baik';
+      if (value >= 600 && value <= 1400) return 'Nutrisi cukup baik';
+      return 'Nutrisi perlu disesuaikan';
     }
   },
   {
@@ -90,11 +76,11 @@ const statusCardTemplates = [
     iconAlt: 'Ikon suhu',
     iconSize: 44,
     iconBg: '#F6F286',
-    metricKey: 'suhu',
+    metricKey: 'suhu', // Asli suhu
     formatValue: (value) => `${value}°C`,
     toneFromValue: (value) => getTemperatureTone(value),
     accentFromTone: (tone) => (tone === 'bad' ? '#D9534F' : '#4B9567'),
-    noteFromTone: (tone) => tone === 'bad' ? 'Suhu terlalu tinggi untuk tanaman' : 'Suhu stabil untuk pertumbuhan'
+    noteFromTone: (tone) => tone === 'bad' ? 'Suhu butuh perhatian' : 'Suhu stabil untuk pertumbuhan'
   },
   {
     id: 'kelembapan',
@@ -104,7 +90,7 @@ const statusCardTemplates = [
     iconKind: 'soil',
     iconSize: 44,
     iconBg: '#C7DDFB',
-    metricKey: 'kelembapan',
+    metricKey: 'kelembapan', // Di-mapping dari Soil
     formatValue: (value) => `${value}%`,
     toneFromValue: (value) => getSoilTone(value),
     accentFromTone: (tone) => {
@@ -120,7 +106,7 @@ const statusCardTemplates = [
   },
   {
     id: 'cahaya',
-    label: 'Cahaya',
+    label: 'Cahaya (LDR)',
     labelColor: '#FEF48A',
     valueColor: '#132A58',
     iconKind: 'sun',
@@ -128,11 +114,11 @@ const statusCardTemplates = [
     iconAlt: 'Ikon cahaya',
     iconSize: 44,
     iconBg: '#F6F286',
-    metricKey: 'cahaya',
-    formatValue: (value) => `${value}%`,
+    metricKey: 'cahaya', // Di-mapping dari LDR
+    formatValue: (value) => `${value}`, // Angka raw LDR
     toneFromValue: (value) => getLightTone(value),
     accentFromTone: (tone) => (tone === 'dim' ? '#D39A1C' : '#F6B400'),
-    noteFromTone: (tone) => (tone === 'dim' ? 'Intensitas cahaya rendah' : 'Cahaya cukup untuk tanaman')
+    noteFromTone: (tone) => (tone === 'dim' ? 'Intensitas cahaya kurang ideal' : 'Cahaya cukup untuk tanaman')
   }
 ];
 
@@ -140,23 +126,81 @@ const DashboardPage = () => {
   const [isWaterActive, setIsWaterActive] = useState(dashboardDummyData.controls.water.initiallyActive);
   const [waterAvailability, setWaterAvailability] = useState(dashboardDummyData.controls.water.initialAvailability);
   const [isVentActive, setIsVentActive] = useState(dashboardDummyData.controls.vent.initiallyActive);
-  const [summaryState, setSummaryState] = useState(dashboardDummyData.summary);
-  const [lastUpdated, setLastUpdated] = useState(dashboardDummyData.lastUpdated);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [statusMetrics, setStatusMetrics] = useState({
-    nutrisi: 85,
-    suhu: 95, // Disamakan dengan visual mockup (95%)
-    kelembapan: 90,
-    cahaya: 90
-  });
   
-  // Perhitungan grafik donat dibesarkan kembali agar prominent sebagai titik fokus
+  // STATE UNTUK DATA REAL DARI SUPABASE
+  const [lastUpdated, setLastUpdated] = useState('Memuat...');
+  const [summaryState, setSummaryState] = useState({ score: '0%', level: 'Memuat...', note: 'Mengambil data dari server...' });
+  const [statusMetrics, setStatusMetrics] = useState({ nutrisi: 0, suhu: 0, kelembapan: 0, cahaya: 0 });
+
   const summaryPercentage = Number.parseInt(summaryState.score, 10) || 0;
   const ringRadius = 66; 
   const ringStroke = 14; 
   const progressCircumference = 2 * Math.PI * ringRadius;
   const progressOffset = progressCircumference * (1 - summaryPercentage / 100);
 
+  // FUNGSI UNTUK MENGAMBIL DAN MEMASANG DATA DARI SUPABASE
+  const updateDashboardWithRealData = useCallback((dataRow) => {
+    if (!dataRow) return;
+
+    // Mapping nilai sensor ke status metrics UI
+    setStatusMetrics({
+      nutrisi: dataRow.tds || 0,
+      suhu: dataRow.suhu || 0,
+      kelembapan: dataRow.soil || 0,
+      cahaya: dataRow.ldr || 0
+    });
+
+    // Pasang skor dan status hasil hitungan Node.js backend
+    setSummaryState({
+      score: `${dataRow.plant_score || 0}%`,
+      level: dataRow.health_status || 'Tidak Diketahui',
+      note: `Skor terbaru ditarik dari sensor. Kondisi: ${dataRow.health_status || 'Tidak Diketahui'}.`
+    });
+
+    // Format waktu terakhir update
+    const dateObj = new Date(dataRow.created_at);
+    const hours = String(dateObj.getHours()).padStart(2, '0');
+    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = dateObj.toLocaleString('id-ID', { month: 'short' });
+    const year = dateObj.getFullYear();
+    setLastUpdated(`${day} ${month} ${year} - ${hours}.${minutes}`);
+  }, []);
+
+  // EFFECT UNTUK FETCH AWAL & SUBSCRIPTION REAL-TIME SUPABASE
+  useEffect(() => {
+    // 1. Ambil data terakhir saat web pertama kali dibuka
+    const fetchInitialData = async () => {
+      const { data, error } = await supabase
+        .from('sensor_data')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (data && !error) {
+        updateDashboardWithRealData(data);
+      }
+    };
+
+    fetchInitialData();
+
+    // 2. Data baru yang masuk secara real-time
+    const channel = supabase
+      .channel('realtime_sensor')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data' }, (payload) => {
+        updateDashboardWithRealData(payload.new);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [updateDashboardWithRealData]);
+
+
+  // Logika UI Tombol Control (Biarkan sama)
   useEffect(() => {
     const refillInterval = setInterval(() => {
       if (isWaterActive) return;
@@ -170,11 +214,9 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (!isWaterActive) return undefined;
-
     const timeoutId = setTimeout(() => {
       setIsWaterActive(false);
     }, 5000);
-
     return () => clearTimeout(timeoutId);
   }, [isWaterActive]);
 
@@ -217,38 +259,6 @@ const DashboardPage = () => {
     },
   ];
 
-  const simulateUpdate = () => {
-    const percentage = Math.floor(Math.random() * (98 - 78 + 1)) + 78;
-    const level = percentage >= 90 ? 'Sangat Baik' : percentage >= 83 ? 'Baik' : 'Cukup';
-    const lightRangeIsGood = Math.random() > 0.35;
-    const soilRangeType = Math.random();
-    const nextSoil = soilRangeType < 0.33 
-      ? Math.floor(Math.random() * (90 - 80 + 1)) + 80
-      : soilRangeType < 0.66 
-        ? Math.floor(Math.random() * (70 - 50 + 1)) + 50
-        : Math.floor(Math.random() * (40 - 10 + 1)) + 10;
-
-    const nextMetrics = {
-      nutrisi: Math.floor(Math.random() * (95 - 80 + 1)) + 80,
-      suhu: Math.floor(Math.random() * (95 - 20 + 1)) + 20, // max 95 to simulate mockup occasionally
-      kelembapan: nextSoil,
-      cahaya: lightRangeIsGood ? Math.floor(Math.random() * (95 - 80 + 1)) + 80 : Math.floor(Math.random() * (30 - 10 + 1)) + 10
-    };
-    
-    const noteIndex = Math.floor(Math.random() * dashboardDummyData.summaryNotes.length);
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-
-    setStatusMetrics(nextMetrics);
-    setSummaryState({
-      score: `${percentage}%`,
-      level,
-      note: dashboardDummyData.summaryNotes[noteIndex]
-    });
-    setLastUpdated(`${hours}.${minutes}`);
-  };
-
   const handleScroll = (e) => {
     setIsScrolled(e.target.scrollTop > 5);
   };
@@ -272,7 +282,7 @@ const DashboardPage = () => {
       >
         <div className="mx-auto flex h-full w-full max-w-[980px] flex-col pt-2 gap-8">
           
-          {/* Row 1: Control Cards (Diberi items-start agar tidak melar ke bawah) */}
+          {/* Row 1: Control Cards */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 items-start">
             {controlCards.map((card) => (
               <ControlToggleCard
@@ -299,25 +309,20 @@ const DashboardPage = () => {
             {/* Summary Card */}
             <div className="relative w-full rounded-[24px] bg-white px-6 py-8 shadow-sm md:px-10">
               
-              {/* Layout 3 Kolom untuk Summary */}
               <div className="grid grid-cols-1 gap-8 md:grid-cols-[1fr_auto_1fr] md:items-center">
                 
-                {/* Kiri: Last Updated (Dapat diklik untuk update - Menjaga Mockup Tampilan Tetap Bersih) */}
-                <div 
-                  className="flex flex-col space-y-1.5 cursor-pointer transition-opacity hover:opacity-70 group"
-                  onClick={simulateUpdate}
-                  title="Klik untuk simulasi update data"
-                >
+                {/* Kiri: Last Updated */}
+                <div className="flex flex-col space-y-1.5 transition-opacity group">
                   <div className="flex items-center gap-2 text-[13px] font-medium text-[#999]">
                     <span className="text-[15px]">🗓️</span>
                     <span>Terakhir di Update</span>
                   </div>
                   <p className="pl-6 text-[14px] font-medium text-[#444] transition-colors group-hover:text-[#4B9567]">
-                    11 Mar 2026 - {lastUpdated}
+                    {lastUpdated}
                   </p>
                 </div>
 
-                {/* Tengah: Donut Chart Besar */}
+                {/* Chart Besar (Skor Tampil) */}
                 <div className="flex justify-center">
                   <div className="relative flex h-[160px] w-[160px] flex-col items-center justify-center rounded-full bg-transparent">
                     <svg className="absolute h-[160px] w-[160px] -rotate-90" viewBox="0 0 160 160" aria-hidden="true">
@@ -338,9 +343,9 @@ const DashboardPage = () => {
                       />
                     </svg>
                     
-                    {/* Nilai di dalam Donat */}
+                    {/* Nilai Skor */}
                     <div className="relative z-10 flex flex-col items-center justify-center mt-1">
-                      <p className="text-[13px] font-medium text-[#888]">Total</p>
+                      <p className="text-[13px] font-medium text-[#888]">Skor Total</p>
                       <p className="text-[36px] font-bold leading-none text-[#385B38] tracking-tight my-1.5">
                         {summaryState.score}
                       </p>
@@ -352,7 +357,7 @@ const DashboardPage = () => {
                 {/* Kanan: Keterangan */}
                 <div className="flex flex-col space-y-1.5 md:pl-6">
                   <div className="flex items-center gap-2 text-[13px] font-medium text-[#999]">
-                    <span className="text-[15px]">🗓️</span>
+                    <span className="text-[15px]">📝</span>
                     <span>Keterangan</span>
                   </div>
                   <p className="pl-6 text-[13px] leading-relaxed text-[#444] max-w-[240px]">
@@ -363,7 +368,7 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            {/* Status Cards (Diberikan jarak agak renggang dari Card Pantau Tanaman) */}
+            {/* Status Cards (Menampilkan Suhu, Kelembapan Tanah, TDS, dan LDR) */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 mt-2">
               {statusCardTemplates.map((item) => {
                 const metricValue = statusMetrics[item.metricKey];
