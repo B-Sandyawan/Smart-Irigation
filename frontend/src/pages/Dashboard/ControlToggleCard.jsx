@@ -1,6 +1,7 @@
 import React from 'react';
 import group20Icon from '../../assets/Group 20.svg';
 import group279Icon from '../../assets/Group 279.svg';
+import actuatorService from '../../services/actuatorService';
 
 const iconTypeMap = {
   water: group20Icon,
@@ -23,6 +24,35 @@ const ControlToggleCard = ({
   const clampedAvailability = Math.max(0, Math.min(100, availabilityPercent ?? 0));
   const meterVisibleLength = clampedAvailability * 0.75;
 
+  const handleClick = async () => {
+    const runLocalToggle = () => {
+      if (onToggle) {
+        onToggle();
+      }
+    };
+
+    try {
+      if (!actuatorService.isBridgeEnabled()) {
+        runLocalToggle();
+        return;
+      }
+
+      let result;
+
+      if (iconType === 'water') {
+        result = await actuatorService.controlPompa(isActive ? 0 : 1, 5);
+      } else if (iconType === 'vent') {
+        result = await actuatorService.controlServo(isActive ? 0 : 1);
+      }
+
+      console.log('Kontrol berhasil:', result);
+      runLocalToggle();
+    } catch (error) {
+      console.error('Gagal mengontrol aktuator:', error.message);
+      runLocalToggle();
+    }
+  };
+
   return (
     <section
       className="relative h-[200px] w-full rounded-[20px] bg-white p-[16px] shadow-[-4px_4px_10px_rgba(0,0,0,0.16),4px_-4px_10px_rgba(0,0,0,0.16)]"
@@ -38,7 +68,7 @@ const ControlToggleCard = ({
 
       <button
         type="button"
-        onClick={onToggle}
+        onClick={handleClick}
         className="group absolute left-1/2 top-[65px] flex h-[100px] w-[100px] -translate-x-1/2 items-center justify-center rounded-full border-0 p-0 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_28px_rgba(0,0,0,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#4B95674A]"
         style={{ backgroundColor: iconBgOuter, boxShadow: '0 4px 4px rgba(0, 0, 0, 0.25)' }}
         aria-pressed={isActive}
