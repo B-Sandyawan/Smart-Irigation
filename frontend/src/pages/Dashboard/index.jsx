@@ -56,8 +56,8 @@ const statusCardTemplates = [
     iconAlt: 'Ikon nutrisi pupuk',
     iconSize: 44, 
     iconBg: '#C3DBC9',
-    metricKey: 'nutrisi', // Di-mapping dari TDS
-    formatValue: (value) => `${value} ppm`, // Ubah jadi ppm (bukan %)
+    metricKey: 'nutrisi', 
+    formatValue: (value) => `${value} ppm`, 
     accentFromTone: () => '#C4A884',
     noteFromValue: (value) => {
       if (value >= 800 && value <= 1200) return 'Nutrisi sangat baik';
@@ -76,7 +76,7 @@ const statusCardTemplates = [
     iconAlt: 'Ikon suhu',
     iconSize: 44,
     iconBg: '#F6F286',
-    metricKey: 'suhu', // Asli suhu
+    metricKey: 'suhu', 
     formatValue: (value) => `${value}°C`,
     toneFromValue: (value) => getTemperatureTone(value),
     accentFromTone: (tone) => (tone === 'bad' ? '#D9534F' : '#4B9567'),
@@ -90,7 +90,7 @@ const statusCardTemplates = [
     iconKind: 'soil',
     iconSize: 44,
     iconBg: '#C7DDFB',
-    metricKey: 'kelembapan', // Di-mapping dari Soil
+    metricKey: 'kelembapan', 
     formatValue: (value) => `${value}%`,
     toneFromValue: (value) => getSoilTone(value),
     accentFromTone: (tone) => {
@@ -114,8 +114,8 @@ const statusCardTemplates = [
     iconAlt: 'Ikon cahaya',
     iconSize: 44,
     iconBg: '#F6F286',
-    metricKey: 'cahaya', // Di-mapping dari LDR
-    formatValue: (value) => `${value}`, // Angka raw LDR
+    metricKey: 'cahaya', 
+    formatValue: (value) => `${value}`, 
     toneFromValue: (value) => getLightTone(value),
     accentFromTone: (tone) => (tone === 'dim' ? '#D39A1C' : '#F6B400'),
     noteFromTone: (tone) => (tone === 'dim' ? 'Intensitas cahaya kurang ideal' : 'Cahaya cukup untuk tanaman')
@@ -128,7 +128,6 @@ const DashboardPage = () => {
   const [isVentActive, setIsVentActive] = useState(dashboardDummyData.controls.vent.initiallyActive);
   const [isScrolled, setIsScrolled] = useState(false);
   
-  // STATE UNTUK DATA REAL DARI SUPABASE
   const [lastUpdated, setLastUpdated] = useState('Memuat...');
   const [summaryState, setSummaryState] = useState({ score: '0%', level: 'Memuat...', note: 'Mengambil data dari server...' });
   const [statusMetrics, setStatusMetrics] = useState({ nutrisi: 0, suhu: 0, kelembapan: 0, cahaya: 0 });
@@ -139,11 +138,9 @@ const DashboardPage = () => {
   const progressCircumference = 2 * Math.PI * ringRadius;
   const progressOffset = progressCircumference * (1 - summaryPercentage / 100);
 
-  // FUNGSI UNTUK MENGAMBIL DAN MEMASANG DATA DARI SUPABASE
   const updateDashboardWithRealData = useCallback((dataRow) => {
     if (!dataRow) return;
 
-    // Mapping nilai sensor ke status metrics UI
     setStatusMetrics({
       nutrisi: dataRow.tds || 0,
       suhu: dataRow.suhu || 0,
@@ -151,14 +148,12 @@ const DashboardPage = () => {
       cahaya: dataRow.ldr || 0
     });
 
-    // Pasang skor dan status hasil hitungan Node.js backend
     setSummaryState({
       score: `${dataRow.plant_score || 0}%`,
       level: dataRow.health_status || 'Tidak Diketahui',
       note: `Skor terbaru ditarik dari sensor. Kondisi: ${dataRow.health_status || 'Tidak Diketahui'}.`
     });
 
-    // Format waktu terakhir update
     const dateObj = new Date(dataRow.created_at);
     const hours = String(dateObj.getHours()).padStart(2, '0');
     const minutes = String(dateObj.getMinutes()).padStart(2, '0');
@@ -168,9 +163,7 @@ const DashboardPage = () => {
     setLastUpdated(`${day} ${month} ${year} - ${hours}.${minutes}`);
   }, []);
 
-  // EFFECT UNTUK FETCH AWAL & SUBSCRIPTION REAL-TIME SUPABASE
   useEffect(() => {
-    // 1. Ambil data terakhir saat web pertama kali dibuka
     const fetchInitialData = async () => {
       const { data, error } = await supabase
         .from('sensor_data')
@@ -186,7 +179,6 @@ const DashboardPage = () => {
 
     fetchInitialData();
 
-    // 2. Data baru yang masuk secara real-time
     const channel = supabase
       .channel('realtime_sensor')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data' }, (payload) => {
@@ -200,7 +192,7 @@ const DashboardPage = () => {
   }, [updateDashboardWithRealData]);
 
 
-  // Logika UI Tombol Control (Biarkan sama)
+  // Logika UI Tombol Control (Pengisian Air)
   useEffect(() => {
     const refillInterval = setInterval(() => {
       if (isWaterActive) return;
@@ -212,18 +204,44 @@ const DashboardPage = () => {
     return () => clearInterval(refillInterval);
   }, [isWaterActive]);
 
+  // BERUBAH: Mengubah timer mati otomatis menjadi 10 detik (10000ms) menyesuaikan backend
   useEffect(() => {
     if (!isWaterActive) return undefined;
     const timeoutId = setTimeout(() => {
       setIsWaterActive(false);
-    }, 5000);
+    }, 10000); 
     return () => clearTimeout(timeoutId);
   }, [isWaterActive]);
 
-  const handleWaterToggle = useCallback(() => {
+  // BERUBAH: Fungsi Fetch ke API Backend
+  const handleWaterToggle = useCallback(async () => {
     if (isWaterActive || waterAvailability <= 0) return;
+    
+    // 1. Ubah UI seketika biar responsif
     setIsWaterActive(true);
     setWaterAvailability((prev) => Math.max(0, prev - 8));
+
+    // 2. Tembak API Backend
+    try {
+      const response = await fetch('http://localhost:3000/api/actuators/pompa', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ value: 1 }) // Kirim perintah ON (1)
+      });
+
+      if (!response.ok) {
+        throw new Error('Gagal mengirim perintah ke server');
+      }
+
+      console.log('Perintah pompa berhasil dikirim ke backend!');
+    } catch (error) {
+      console.error('Error memanggil API pompa:', error);
+      // Opsional: Matikan kembali animasi UI jika ternyata backend mati
+      // setIsWaterActive(false); 
+      // alert('Gagal terhubung ke server pompa. Pastikan backend menyala.');
+    }
   }, [isWaterActive, waterAvailability]);
 
   const handleVentToggle = useCallback(() => {

@@ -1,9 +1,17 @@
 require('dotenv').config();
 
+const express = require('express');
+const cors = require('cors');
 const mqtt = require('mqtt');
 const { createClient } = require('@supabase/supabase-js');
 
 const { calculatePlantScore } = require('./scoring');
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+const PORT = process.env.PORT || 3000;
 
 const config = {
   supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
@@ -25,10 +33,12 @@ const config = {
   keepAliveSeconds: Number(process.env.MQTT_KEEPALIVE_SECONDS || 60),
 };
 
+const isSupabaseConfigured = Boolean(config.supabaseUrl && config.supabaseKey);
+
+let mqttClient;
+
 function validateConfig() {
   const required = [
-    ['SUPABASE_URL atau VITE_SUPABASE_URL', config.supabaseUrl],
-    ['SUPABASE_SERVICE_ROLE_KEY (disarankan)', process.env.SUPABASE_SERVICE_ROLE_KEY],
     ['MQTT_BROKER_URL', config.mqttBrokerUrl],
     ['MQTT_TOPIC', config.mqttTopic],
   ];
@@ -37,6 +47,12 @@ function validateConfig() {
 
   if (missing.length > 0) {
     throw new Error(`Konfigurasi .env belum lengkap: ${missing.join(', ')}`);
+  }
+
+  if (!isSupabaseConfigured) {
+    console.warn(
+      '[PERINGATAN] Supabase belum dikonfigurasi. Penyimpanan sensor ke database dinonaktifkan, kontrol aktuator tetap aktif.'
+    );
   }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY && config.supabaseKey) {
@@ -83,17 +99,143 @@ async function insertSensorData(supabase, row) {
   }
 }
 
+function publishControlCommand(topic, value) {
+  return new Promise((resolve, reject) => {
+    if (!mqttClient) {
+      reject(new Error('MQTT client belum terhubung'));
+      return;
+    }
+
+    mqttClient.publish(
+      topic,
+      String(value),
+      { qos: config.mqttQos },
+      (error) => {
+        if (error) {
+          console.error(`[PUBLISH] Gagal publish ke ${topic}:`, error.message);
+          reject(error);
+        } else {
+          console.log(`[PUBLISH] Sukses publish ke ${topic}: ${value}`);
+          resolve({ success: true, topic, value });
+        }
+      }
+    );
+  });
+}
+
+app.post('/api/actuators/pompa', async (req, res) => {
+  try {
+    const { value, duration = 10 } = req.body;
+
+    if (value !== 0 && value !== 1) {
+      return res
+        .status(400)
+        .json({ error: 'Pompa: value harus 0 (OFF) atau 1 (ON)' });
+    }
+
+    // Pakai topic yang sudah dibaca firmware ESP lama.
+    await publishControlCommand('farm/sensors/soil', value === 1 ? 0 : 100);
+
+    if (value === 1) {
+      setTimeout(() => {
+        publishControlCommand('farm/sensors/soil', 100).catch((err) =>
+          console.error('[AUTO-OFF] Gagal matikan pompa:', err.message)
+        );
+      }, duration * 1000);
+    }
+
+    return res.json({
+      success: true,
+      message: value === 1 ? `Pompa NYALA (${duration}s)` : 'Pompa OFF',
+      actuator: 'pompa',
+      value,
+    });
+  } catch (error) {
+    console.error('[POMPA] Error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/actuators/lampu', async (req, res) => {
+  try {
+    const { value } = req.body;
+
+    if (value !== 0 && value !== 1) {
+      return res
+        .status(400)
+        .json({ error: 'Lampu: value harus 0 (OFF) atau 1 (ON)' });
+    }
+
+    await publishControlCommand('farm/sensors/ldr', value === 1 ? 4000 : 1000);
+
+    return res.json({
+      success: true,
+      message: value === 1 ? 'Lampu NYALA' : 'Lampu OFF',
+      actuator: 'lampu',
+      value,
+    });
+  } catch (error) {
+    console.error('[LAMPU] Error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/actuators/servo', async (req, res) => {
+  try {
+    const { value } = req.body;
+
+    if (value !== 0 && value !== 1) {
+      return res
+        .status(400)
+        .json({ error: 'Servo: value harus 0 (TUTUP) atau 1 (BUKA)' });
+    }
+
+    await publishControlCommand('farm/sensors/suhu', value === 1 ? 40 : 20);
+
+    return res.json({
+      success: true,
+      message: value === 1 ? 'Servo BUKA' : 'Servo TUTUP',
+      actuator: 'servo',
+      value,
+    });
+  } catch (error) {
+    console.error('[SERVO] Error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/status', (req, res) => {
+  return res.json({
+    mqtt: {
+      connected: mqttClient ? mqttClient.connected : false,
+      broker: config.mqttBrokerUrl,
+      clientId: config.mqttClientId,
+    },
+    server: {
+      status: 'online',
+      port: PORT,
+      timestamp: new Date().toISOString(),
+    },
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  return res.json({ status: 'OK' });
+});
+
 async function bootstrap() {
   validateConfig();
 
-  const supabase = createClient(config.supabaseUrl, config.supabaseKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+  const supabase = isSupabaseConfigured
+    ? createClient(config.supabaseUrl, config.supabaseKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      })
+    : null;
 
-  const mqttClient = mqtt.connect(config.mqttBrokerUrl, {
+  mqttClient = mqtt.connect(config.mqttBrokerUrl, {
     username: config.mqttUsername,
     password: config.mqttPassword,
     clientId: config.mqttClientId,
@@ -145,22 +287,40 @@ async function bootstrap() {
       row.plant_score = score;
       row.health_status = status;
 
-      await insertSensorData(supabase, row);
-
-      // Update log terminal untuk menampilkan skor 
-      console.log(
-        `[BRIDGE] Data tersimpan dari topic ${topic}: suhu=${row.suhu}, kelembaban=${row.kelembaban}, soil=${row.soil}, tds=${row.tds}, ldr=${row.ldr} | SKOR: ${row.plant_score} (${row.health_status})`
-      );
+      if (supabase) {
+        await insertSensorData(supabase, row);
+        console.log(
+          `[BRIDGE] Data tersimpan dari topic ${topic}: suhu=${row.suhu}, kelembaban=${row.kelembaban}, soil=${row.soil}, tds=${row.tds}, ldr=${row.ldr} | SKOR: ${row.plant_score} (${row.health_status})`
+        );
+      } else {
+        console.log(
+          `[BRIDGE] Data sensor diterima (tanpa simpan DB): suhu=${row.suhu}, kelembaban=${row.kelembaban}, soil=${row.soil}, tds=${row.tds}, ldr=${row.ldr} | SKOR: ${row.plant_score} (${row.health_status})`
+        );
+      }
     } catch (error) {
       console.error(`[BRIDGE] Gagal memproses message dari topic ${topic}:`, error.message);
     }
   });
 
+  const server = app.listen(PORT, () => {
+    console.log(`[SERVER] Express berjalan di http://localhost:${PORT}`);
+    console.log('[SERVER] Endpoints:');
+    console.log('  POST /api/actuators/pompa - Kontrol pompa');
+    console.log('  POST /api/actuators/lampu - Kontrol lampu');
+    console.log('  POST /api/actuators/servo - Kontrol servo');
+    console.log('  GET  /api/status - Status server & MQTT');
+    console.log('  GET  /api/health - Health check');
+  });
+
   const shutdown = (signal) => {
-    console.log(`[SYSTEM] Menerima ${signal}. Menutup koneksi MQTT...`);
+    console.log(`[SYSTEM] Menerima ${signal}. Menutup koneksi...`);
 
     mqttClient.end(true, () => {
-      console.log('[SYSTEM] Bridge berhenti dengan aman.');
+      console.log('[SYSTEM] MQTT disconnected.');
+    });
+
+    server.close(() => {
+      console.log('[SYSTEM] Server closed.');
       process.exit(0);
     });
 
