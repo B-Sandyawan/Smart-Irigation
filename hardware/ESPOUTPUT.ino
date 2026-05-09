@@ -40,6 +40,8 @@ const char* CLIENT_ID   = "ESP2_Aktuator";
 //  KONFIGURASI
 // ─────────────────────────────────────────
 #define SUHU_BUKA   33.0  // servo buka jika suhu >= 33°C
+#define SOIL_BUKA   80    // servo buka jika soil > 80% (WET detection)
+#define HUMID_BUKA  90    // servo buka jika kelembaban > 90%
 #define SERVO_TUTUP 0     // derajat tutup
 #define SERVO_BUKA  90    // derajat buka
 #define SOIL_POMPA_ON_PCT  30
@@ -48,13 +50,15 @@ const char* CLIENT_ID   = "ESP2_Aktuator";
 // ─────────────────────────────────────────
 //  TOPIC MQTT
 // ─────────────────────────────────────────
-#define TOPIC_SUHU   "farm/sensors/suhu"
-#define TOPIC_LDR    "farm/sensors/ldr"
-#define TOPIC_SOIL   "farm/sensors/soil"   // FIX: topic soil ditambahkan
-#define TOPIC_STATUS "farm/status/esp2"
+#define TOPIC_SUHU      "farm/sensors/suhu"
+#define TOPIC_LDR       "farm/sensors/ldr"
+#define TOPIC_SOIL      "farm/sensors/soil"
+#define TOPIC_KELEMBABAN "farm/sensors/kelembaban"
+#define TOPIC_STATUS    "farm/status/esp2"
+#define TOPIC_SERVO     "farm/sensors/servo"   // Command servo dari backend
 
 // ─────────────────────────────────────────
-//  OBJEK
+//  OBJEK & GLOBAL STATE
 // ─────────────────────────────────────────
 Servo servo[4];
 int servoPins[4] = {SERVO1_PIN, SERVO2_PIN, SERVO3_PIN, SERVO4_PIN};
@@ -63,19 +67,54 @@ WiFiClientSecure espClient;
 PubSubClient client(espClient);
 bool pompaNyala = false;
 
+// Simpan sensor values untuk servo logic
+float sensorSuhu = 0.0f;
+int sensorSoil = 0;
+int sensorKelembaban = 0;
+bool servoAktif = false;
+
 // ─────────────────────────────────────────
 //  FUNGSI SERVO
 // ─────────────────────────────────────────
 void bukaServo() {
+  if (servoAktif) return;  // Sudah buka, skip
   for (int i = 0; i < 4; i++) servo[i].write(SERVO_BUKA);
-  Serial.println("Servo: BUKA (90°)");
+  servoAktif = true;
+  Serial.println("Servo: BUKA (90°) - ventilasi aktif");
   client.publish(TOPIC_STATUS, "servo:BUKA", true);
 }
 
 void tutupServo() {
+  if (!servoAktif) return;  // Sudah tutup, skip
   for (int i = 0; i < 4; i++) servo[i].write(SERVO_TUTUP);
-  Serial.println("Servo: TUTUP (0°)");
+  servoAktif = false;
+  Serial.println("Servo: TUTUP (0°) - ventilasi tutup");
   client.publish(TOPIC_STATUS, "servo:TUTUP", true);
+}
+
+// ─────────────────────────────────────────
+//  FUNGSI CHECK SERVO LOGIC
+// ─────────────────────────────────────────
+void updateServoLogic() {
+  // Servo BUKA jika: suhu > 33 OR soil > 80 (wet) OR kelembaban > 90
+  bool shouldOpen = (sensorSuhu >= SUHU_BUKA) || 
+                    (sensorSoil > SOIL_BUKA) || 
+                    (sensorKelembaban > HUMID_BUKA);
+  
+  if (shouldOpen) {
+    bukaServo();
+  } else {
+    tutupServo();
+  }
+  
+  Serial.print("[SERVO DEBUG] Suhu=");
+  Serial.print(sensorSuhu, 1);
+  Serial.print(" Soil=");
+  Serial.print(sensorSoil);
+  Serial.print("% Humid=");
+  Serial.print(sensorKelembaban);
+  Serial.print("% -> ");
+  Serial.println(shouldOpen ? "BUKA" : "TUTUP");
 }
 
 // ─────────────────────────────────────────
@@ -122,14 +161,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   // ── Data Suhu dari ESP1 ─────────────
   if (topicStr == TOPIC_SUHU) {
-    float suhu = msg.toFloat();
-    Serial.println("Suhu: " + String(suhu, 1) + " °C");
-
-    if (suhu >= SUHU_BUKA) {
-      bukaServo();
-    } else {
-      tutupServo();
-    }
+    sensorSuhu = msg.toFloat();
+    Serial.println("Suhu: " + String(sensorSuhu, 1) + " °C");
+    updateServoLogic();
   }
 
   // ── Data LDR dari ESP1 ──────────────
@@ -145,15 +179,34 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   // ── Data Soil dari ESP1 ─────────────
-  // FIX: blok ini sekarang benar-benar di dalam fungsi callback()
   if (topicStr == TOPIC_SOIL) {
-    int soilPct = msg.toInt();
-    Serial.println("Soil (%): " + String(soilPct));  // FIX: pakai soilRaw, bukan ldrRaw
+    sensorSoil = msg.toInt();
+    Serial.println("Soil: " + String(sensorSoil) + "%");
+    
+    // Update servo logic (bisa buka kalo wet)
+    updateServoLogic();
 
-    if (!pompaNyala && soilPct < SOIL_POMPA_ON_PCT) {
+    // Pompa logic (independent dari servo)
+    if (!pompaNyala && sensorSoil < SOIL_POMPA_ON_PCT) {
       nyalakanPompa();
-    } else if (pompaNyala && soilPct > SOIL_POMPA_OFF_PCT) {
-      matikanPompa();  // FIX: panggil matikanPompa() yang sudah ada
+    } else if (pompaNyala && sensorSoil > SOIL_POMPA_OFF_PCT) {
+      matikanPompa();
+    }
+  }
+
+  // ── Data Kelembaban dari ESP1 ───────
+  if (topicStr == TOPIC_KELEMBABAN) {
+    sensorKelembaban = msg.toInt();
+    Serial.println("Kelembaban: " + String(sensorKelembaban) + "%");
+    updateServoLogic();  // Update servo jika lembab
+  }
+
+  // ── Command Servo dari Backend ──────
+  if (topicStr == TOPIC_SERVO) {
+    if (msg == "1" || msg == "BUKA") {
+      bukaServo();
+    } else if (msg == "0" || msg == "TUTUP") {
+      tutupServo();
     }
   }
 
@@ -169,7 +222,9 @@ void connectMQTT() {
       Serial.println("OK!");
       client.subscribe(TOPIC_SUHU);
       client.subscribe(TOPIC_LDR);
-      client.subscribe(TOPIC_SOIL);   // FIX: subscribe soil ditambahkan
+      client.subscribe(TOPIC_SOIL);
+      client.subscribe(TOPIC_KELEMBABAN);
+      client.subscribe(TOPIC_SERVO);  // Subscribe command servo dari backend
       client.publish(TOPIC_STATUS, "ESP2 online", true);
     } else {
       Serial.print("Gagal rc=");

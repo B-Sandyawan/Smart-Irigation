@@ -214,13 +214,15 @@ app.post('/api/actuators/servo', async (req, res) => {
         .json({ error: 'Servo: value harus 0 (TUTUP) atau 1 (BUKA)' });
     }
 
-    await publishControlCommand('farm/sensors/suhu', value === 1 ? 40 : 20);
+    // Publish ke topic servo untuk ESP2 terima
+    await publishControlCommand('farm/sensors/servo', value === 1 ? '1' : '0');
 
     return res.json({
       success: true,
-      message: value === 1 ? 'Servo BUKA' : 'Servo TUTUP',
+      message: value === 1 ? 'Servo BUKA - Ventilasi aktif' : 'Servo TUTUP - Ventilasi tutup',
       actuator: 'servo',
       value,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('[SERVO] Error:', error.message);
