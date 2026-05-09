@@ -1,92 +1,79 @@
-const SCORE_SANGAT_BAIK = 20;
-const SCORE_BAIK = 15;
-const SCORE_CUKUP = 10;
-const SCORE_BURUK = 5;
+// scoring.js
+// Kalkulasi skor kesehatan tanaman Kangkung
+// Rumus: skor_akhir = (tanah + suhu + udara + cahaya) / 4
 
-const PLANT_THRESHOLDS = {
-  KANGKUNG: {
-    // 1. Suhu (°C)
-    suhu: {
-      sangat_baik: { min: 25, max: 30 },
-      baik: { min: 20, max: 24.9 },       
-      cukup: { min: 15, max: 19.9 },      
-      // Jika di luar semua ini, otomatis masuk 'buruk'
-    },
-    // 2. Kelembaban Udara (%)
-    kelembaban: {
-      sangat_baik: { min: 60, max: 80 },
-      baik: { min: 50, max: 59.9 },
-      cukup: { min: 40, max: 49.9 },
-    },
-    // 3. Kelembaban Tanah / Soil (%)
-    soil: {
-      sangat_baik: { min: 60, max: 80 },
-      baik: { min: 50, max: 59.9 },
-      cukup: { min: 40, max: 49.9 },
-    },
-    // 4. TDS 
-    tds: {
-      sangat_baik: { min: 800, max: 1200 },
-      baik: { min: 600, max: 799 },
-      cukup: { min: 400, max: 599 },
-    },
-    // 5. LDR / Intensitas Cahaya
-    ldr: {
-      sangat_baik: { min: 400, max: 800 },
-      baik: { min: 300, max: 399 },
-      cukup: { min: 200, max: 299 },
-    }
-  }
-};
+// ─── Skor per kondisi ────────────────────────────────────────────────────────
 
-/**
- * Cek kategori nilai sensor dan kembalikan poinnya
- */
-function getPointsForMetric(value, thresholds) {
-  // Pastikan data valid
-  if (value === undefined || value === null || isNaN(value)) return 0;
-
-  if (value >= thresholds.sangat_baik.min && value <= thresholds.sangat_baik.max) {
-    return SCORE_SANGAT_BAIK;
-  } else if (value >= thresholds.baik.min && value <= thresholds.baik.max) {
-    return SCORE_BAIK;
-  } else if (value >= thresholds.cukup.min && value <= thresholds.cukup.max) {
-    return SCORE_CUKUP;
-  } else {
-    // Jika tidak masuk Sangat Baik, Baik, atau Cukup, berarti Buruk
-    return SCORE_BURUK;
-  }
+function getSkorTanah(soil) {
+  if (soil >= 60 && soil <= 80) return { skor: 100, kondisi: 'Ideal' };
+  if (soil >= 40 && soil < 60) return { skor: 70, kondisi: 'Cukup' };
+  if (soil > 80) return { skor: 60, kondisi: 'Terlalu Basah' };
+  // soil < 40
+  return { skor: 30, kondisi: 'Kering' };
 }
 
+function getSkorSuhu(suhu) {
+  if (suhu >= 25 && suhu <= 32) return { skor: 100, kondisi: 'Ideal' };
+  if (suhu >= 20 && suhu < 25) return { skor: 70, kondisi: 'Cukup' };
+  if (suhu > 32) return { skor: 60, kondisi: 'Terlalu Panas' };
+  // suhu < 20
+  return { skor: 40, kondisi: 'Terlalu Dingin' };
+}
+
+function getSkorUdara(kelembaban) {
+  if (kelembaban >= 70 && kelembaban <= 90) return { skor: 100, kondisi: 'Ideal' };
+  if (kelembaban >= 50 && kelembaban < 70) return { skor: 80, kondisi: 'Cukup' };
+  if (kelembaban > 90) return { skor: 70, kondisi: 'Terlalu Lembab' };
+  // kelembaban < 50
+  return { skor: 50, kondisi: 'Kering' };
+}
+
+function getSkorCahaya(ldr) {
+  // LDR ADC: nilai tinggi = gelap, nilai rendah = terang
+  if (ldr < 200) return { skor: 100, kondisi: 'Sangat Terang' };
+  if (ldr >= 200 && ldr < 500) return { skor: 90, kondisi: 'Terang' };
+  if (ldr >= 500 && ldr <= 800) return { skor: 70, kondisi: 'Cukup' };
+  // ldr > 800
+  return { skor: 40, kondisi: 'Gelap' };
+}
+
+// ─── Status kondisi tanaman berdasarkan skor akhir ───────────────────────────
+
+function getHealthStatus(skorAkhir) {
+  if (skorAkhir >= 91) return 'Optimal';
+  if (skorAkhir >= 76) return 'Baik';
+  if (skorAkhir >= 51) return 'Cukup';
+  return 'Buruk';
+}
+
+// ─── Fungsi utama ─────────────────────────────────────────────────────────────
+
 /**
- * Fungsi utama untuk menghitung skor
+ * Menghitung skor kesehatan tanaman berdasarkan 4 parameter sensor.
+ *
+ * @param {object} sensorData - { suhu, kelembaban, soil, ldr }
+ * @returns {{ score: number, health_status: string, detail: object }}
  */
-function calculatePlantScore(sensorData, plantType = 'KANGKUNG') {
-  const threshold = PLANT_THRESHOLDS[plantType.toUpperCase()];
-  if (!threshold) return { score: 0, status: 'Tidak Diketahui' };
+function calculatePlantScore(sensorData) {
+  const tanah = getSkorTanah(sensorData.soil);
+  const suhu = getSkorSuhu(sensorData.suhu);
+  const udara = getSkorUdara(sensorData.kelembaban);
+  const cahaya = getSkorCahaya(sensorData.ldr);
 
-  let totalPoints = 0;
-  const metrics = ['suhu', 'kelembaban', 'soil', 'tds', 'ldr'];
+  const skorAkhir = Math.round(
+    (tanah.skor + suhu.skor + udara.skor + cahaya.skor) / 4
+  );
 
-  // Hitung poin untuk masing-masing sensor
-  metrics.forEach(metric => {
-    totalPoints += getPointsForMetric(sensorData[metric], threshold[metric]);
-  });
-
-  // Deskripsi
-  let status = 'Sangat Baik'; 
-  
-  if (totalPoints >= 85) {
-    status = 'Sangat Sesuai / Ideal'; 
-  } else if (totalPoints >= 65) {
-    status = 'Sesuai / Baik';        
-  } else if (totalPoints >= 45) {
-    status = 'Kurang Sesuai / Cukup'; 
-  } else {
-    status = 'Tidak Sesuai / Buruk';  
-  }
-
-  return { score: totalPoints, status };
+  return {
+    score: skorAkhir,
+    health_status: getHealthStatus(skorAkhir),
+    detail: {
+      tanah: { score: tanah.skor, kondisi: tanah.kondisi },
+      suhu: { score: suhu.skor, kondisi: suhu.kondisi },
+      udara: { score: udara.skor, kondisi: udara.kondisi },
+      cahaya: { score: cahaya.skor, kondisi: cahaya.kondisi },
+    },
+  };
 }
 
 module.exports = { calculatePlantScore };

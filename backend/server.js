@@ -11,11 +11,23 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Smart Irrigation API is running',
+    endpoints: {
+      status: '/api/status',
+      health: '/api/health',
+      plantStatus: '/api/plant-status',
+      wateringHistory: '/api/watering-history'
+    }
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 
 const config = {
   supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  
+
   supabaseKey:
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
@@ -36,6 +48,7 @@ const config = {
 const isSupabaseConfigured = Boolean(config.supabaseUrl && config.supabaseKey);
 
 let mqttClient;
+let supabase;
 
 function validateConfig() {
   const required = [
@@ -137,6 +150,17 @@ app.post('/api/actuators/pompa', async (req, res) => {
     await publishControlCommand('farm/sensors/soil', value === 1 ? 0 : 100);
 
     if (value === 1) {
+      // Catat ke riwayat penyiraman (Krisna)
+      if (supabase) {
+        supabase.from('watering_history').insert([{
+          duration_seconds: duration,
+          triggered_by: 'manual',
+        }]).then(({ error }) => {
+          if (error) console.error('[RIWAYAT] Gagal simpan riwayat penyiraman:', error.message);
+          else console.log(`[RIWAYAT] Penyiraman tercatat (${duration}s)`);
+        });
+      }
+
       setTimeout(() => {
         publishControlCommand('farm/sensors/soil', 100).catch((err) =>
           console.error('[AUTO-OFF] Gagal matikan pompa:', err.message)
@@ -204,6 +228,63 @@ app.post('/api/actuators/servo', async (req, res) => {
   }
 });
 
+// GET /api/plant-status — Data sensor terbaru + skor pantau tanaman (Krisna)
+app.get('/api/plant-status', async (req, res) => {
+  if (!supabase) {
+    return res.status(503).json({ error: 'Supabase belum dikonfigurasi.' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('sensor_data')
+      .select('suhu, kelembaban, soil, tds, ldr, plant_score, health_status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+
+    // Hitung ulang detail skor agar frontend dapat breakdown per-parameter
+    const scoring = calculatePlantScore(data);
+
+    return res.json({
+      ...data,
+      plant_score: scoring.score,
+      health_status: scoring.health_status,
+      detail: scoring.detail,
+    });
+  } catch (error) {
+    console.error('[PLANT-STATUS] Error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/watering-history — Riwayat penyiraman (Krisna)
+app.get('/api/watering-history', async (req, res) => {
+  if (!supabase) {
+    return res.status(503).json({ error: 'Supabase belum dikonfigurasi.' });
+  }
+
+  try {
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
+    const deviceId = req.query.device_id || 'esp1';
+
+    const { data, error } = await supabase
+      .from('watering_history')
+      .select('*')
+      .eq('device_id', deviceId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return res.json(data);
+  } catch (error) {
+    console.error('[WATERING-HISTORY] Error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/status', (req, res) => {
   return res.json({
     mqtt: {
@@ -226,13 +307,13 @@ app.get('/api/health', (req, res) => {
 async function bootstrap() {
   validateConfig();
 
-  const supabase = isSupabaseConfigured
+  supabase = isSupabaseConfigured
     ? createClient(config.supabaseUrl, config.supabaseKey, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      })
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
     : null;
 
   mqttClient = mqtt.connect(config.mqttBrokerUrl, {
@@ -271,7 +352,7 @@ async function bootstrap() {
   });
 
   mqttClient.on('error', (error) => {
-    
+
     console.error('[MQTT] Error client:', error.message);
   });
 
@@ -281,11 +362,10 @@ async function bootstrap() {
     try {
       const row = parseSensorPayload(rawPayload);
 
-      // Proses hitung skor dan status
-      const { score, status } = calculatePlantScore(row, 'KANGKUNG');
-      
-      row.plant_score = score;
-      row.health_status = status;
+      // Hitung skor dan status kesehatan tanaman
+      const result = calculatePlantScore(row);
+      row.plant_score = result.score;
+      row.health_status = result.health_status;
 
       if (supabase) {
         await insertSensorData(supabase, row);
