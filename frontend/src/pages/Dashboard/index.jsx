@@ -25,14 +25,14 @@ const dashboardDummyData = {
     },
     vent: {
       title: 'Tombol Ventilasi',
-      readyText: 'Terbuka',
-      activeText: 'Tertutup',
-      accentOn: '#F55F5F',
+      readyText: 'Tertutup',
+      activeText: 'Terbuka',
+      accentOn: '#9BC19B', // Hijau saat terbuka, sama seperti pompa
       accentOff: '#ADADAD',
       iconBgOuter: '#ECDBC9',
       iconBgInner: '#C4A884',
       iconType: 'vent',
-      initiallyActive: true
+      initiallyActive: false
     }
   }
 };
@@ -181,7 +181,12 @@ const DashboardPage = () => {
 
     const channel = supabase
       .channel('realtime_sensor')
+      .on('broadcast', { event: 'sensor_update' }, (payload) => {
+        // Menerima data real-time seketika dari backend (MQTT -> Web)
+        updateDashboardWithRealData(payload.payload);
+      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data' }, (payload) => {
+        // Fallback jika tidak lewat broadcast
         updateDashboardWithRealData(payload.new);
       })
       .subscribe();
@@ -213,6 +218,15 @@ const DashboardPage = () => {
     return () => clearTimeout(timeoutId);
   }, [isWaterActive]);
 
+  // BERUBAH: Timer tutup Servo (Servo otomatis kembali Tertutup di UI dalam 30 detik)
+  useEffect(() => {
+    if (!isVentActive) return undefined;
+    const timeoutId = setTimeout(() => {
+      setIsVentActive(false);
+    }, 30000); 
+    return () => clearTimeout(timeoutId);
+  }, [isVentActive]);
+
   // BERUBAH: Fungsi Fetch ke API Backend
   const handleWaterToggle = useCallback(async () => {
     if (isWaterActive || waterAvailability <= 0) return;
@@ -223,7 +237,8 @@ const DashboardPage = () => {
 
     // 2. Tembak API Backend
     try {
-      const response = await fetch('http://localhost:3000/api/actuators/pompa', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/actuators/pompa`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -244,9 +259,31 @@ const DashboardPage = () => {
     }
   }, [isWaterActive, waterAvailability]);
 
-  const handleVentToggle = useCallback(() => {
-    setIsVentActive((prev) => !prev);
-  }, []);
+  const handleVentToggle = useCallback(async () => {
+    if (isVentActive) return; // kalau sudah terbuka, tidak bisa dipencet sampai tertutup otomatis
+
+    setIsVentActive(true); // ubah status jadi Terbuka
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/actuators/servo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ value: 1 }) // Kirim perintah BUKA (1)
+      });
+
+      if (!response.ok) {
+        throw new Error('Gagal mengirim perintah servo ke server');
+      }
+
+      console.log('Perintah servo berhasil dikirim ke backend!');
+    } catch (error) {
+      console.error('Error memanggil API servo:', error);
+      // setIsVentActive(false); 
+    }
+  }, [isVentActive]);
 
   const waterControl = dashboardDummyData.controls.water;
   const ventControl = dashboardDummyData.controls.vent;

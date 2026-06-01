@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const mqtt = require('mqtt');
 const { createClient } = require('@supabase/supabase-js');
+const WebSocket = require('ws');
 
 const { calculatePlantScore } = require('./scoring');
 
@@ -33,10 +34,10 @@ const config = {
     process.env.SUPABASE_ANON_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY,
   supabaseTable: process.env.SUPABASE_TABLE || 'sensor_data',
-  mqttBrokerUrl: process.env.MQTT_BROKER_URL,
-  mqttUsername: process.env.MQTT_USERNAME,
-  mqttPassword: process.env.MQTT_PASSWORD,
-  mqttTopic: process.env.MQTT_TOPIC || 'farm/sensors/esp1_data',
+  mqttBrokerUrl: process.env.MQTT_BROKER_URL || 'mqtts://r7662111.ala.asia-southeast1.emqxsl.com:8883',
+  mqttUsername: process.env.MQTT_USERNAME || 'esp_farm',
+  mqttPassword: process.env.MQTT_PASSWORD || '123Sija2!',
+  mqttTopic: process.env.MQTT_TOPIC || 'farm/sensors/#',
   mqttClientId:
     process.env.MQTT_CLIENT_ID || `smart-irrigation-bridge-${Math.random().toString(16).slice(2, 10)}`,
   mqttQos: Number(process.env.MQTT_QOS || 1),
@@ -51,17 +52,6 @@ let mqttClient;
 let supabase;
 
 function validateConfig() {
-  const required = [
-    ['MQTT_BROKER_URL', config.mqttBrokerUrl],
-    ['MQTT_TOPIC', config.mqttTopic],
-  ];
-
-  const missing = required.filter(([, value]) => !value).map(([name]) => name);
-
-  if (missing.length > 0) {
-    throw new Error(`Konfigurasi .env belum lengkap: ${missing.join(', ')}`);
-  }
-
   if (!isSupabaseConfigured) {
     console.warn(
       '[PERINGATAN] Supabase belum dikonfigurasi. Penyimpanan sensor ke database dinonaktifkan, kontrol aktuator tetap aktif.'
@@ -104,6 +94,47 @@ function parseSensorPayload(rawPayload) {
   };
 }
 
+let tempSensorData = {
+  suhu: 25,
+  kelembaban: 60,
+  soil: 0,
+  tds: 0,
+  ldr: 0
+};
+let saveSensorTimeout = null;
+
+async function processAccumulatedSensors(supabase) {
+  const row = { ...tempSensorData };
+  
+  try {
+    const result = calculatePlantScore(row);
+    row.plant_score = result.score;
+    row.health_status = result.health_status;
+
+    if (supabase) {
+      // 1. Kirim ke Web dulu via Supabase Broadcast (Real-time seketika)
+      supabase.channel('realtime_sensor').send({
+        type: 'broadcast',
+        event: 'sensor_update',
+        payload: row
+      });
+
+      // 2. Terus insert DB
+      await insertSensorData(supabase, row);
+      console.log(
+        `[BRIDGE] Data tersimpan: suhu=${row.suhu}, kelembaban=${row.kelembaban}, soil=${row.soil}, tds=${row.tds}, ldr=${row.ldr} | SKOR: ${row.plant_score} (${row.health_status})`
+      );
+    } else {
+      console.log(
+        `[BRIDGE] Data sensor diterima (tanpa simpan DB): suhu=${row.suhu}, kelembaban=${row.kelembaban}, soil=${row.soil}, tds=${row.tds}, ldr=${row.ldr} | SKOR: ${row.plant_score} (${row.health_status})`
+      );
+    }
+  } catch (error) {
+    console.error(`[BRIDGE] Gagal memproses data sensor:`, error.message);
+  }
+}
+
+
 async function insertSensorData(supabase, row) {
   const { error } = await supabase.from(config.supabaseTable).insert([row]);
 
@@ -112,7 +143,7 @@ async function insertSensorData(supabase, row) {
   }
 }
 
-function publishControlCommand(topic, value) {
+function publishControlCommand(topic, value, retain = false) {
   return new Promise((resolve, reject) => {
     if (!mqttClient) {
       reject(new Error('MQTT client belum terhubung'));
@@ -122,7 +153,7 @@ function publishControlCommand(topic, value) {
     mqttClient.publish(
       topic,
       String(value),
-      { qos: config.mqttQos },
+      { qos: config.mqttQos, retain },
       (error) => {
         if (error) {
           console.error(`[PUBLISH] Gagal publish ke ${topic}:`, error.message);
@@ -146,10 +177,10 @@ app.post('/api/actuators/pompa', async (req, res) => {
         .json({ error: 'Pompa: value harus 0 (OFF) atau 1 (ON)' });
     }
 
-    // Pakai topic yang sudah dibaca firmware ESP lama.
-    await publishControlCommand('farm/sensors/soil', value === 1 ? 0 : 100);
-
     if (value === 1) {
+      // Publish langsung command ON ke ESP tanpa retain
+      await publishControlCommand('farm/command/pompa', 'ON', false);
+
       // Catat ke riwayat penyiraman (Krisna)
       if (supabase) {
         supabase.from('watering_history').insert([{
@@ -160,17 +191,11 @@ app.post('/api/actuators/pompa', async (req, res) => {
           else console.log(`[RIWAYAT] Penyiraman tercatat (${duration}s)`);
         });
       }
-
-      setTimeout(() => {
-        publishControlCommand('farm/sensors/soil', 100).catch((err) =>
-          console.error('[AUTO-OFF] Gagal matikan pompa:', err.message)
-        );
-      }, duration * 1000);
     }
 
     return res.json({
       success: true,
-      message: value === 1 ? `Pompa NYALA (${duration}s)` : 'Pompa OFF',
+      message: value === 1 ? `Pompa NYALA (${duration}s)` : 'Pompa diabaikan (karena ESP auto OFF timer)',
       actuator: 'pompa',
       value,
     });
@@ -214,12 +239,14 @@ app.post('/api/actuators/servo', async (req, res) => {
         .json({ error: 'Servo: value harus 0 (TUTUP) atau 1 (BUKA)' });
     }
 
-    // Publish ke topic servo untuk ESP2 terima
-    await publishControlCommand('farm/sensors/servo', value === 1 ? '1' : '0');
+    if (value === 1) {
+      // Publish langsung command ON ke ESP tanpa retain
+      await publishControlCommand('farm/command/servo', 'ON', false);
+    }
 
     return res.json({
       success: true,
-      message: value === 1 ? 'Servo BUKA - Ventilasi aktif' : 'Servo TUTUP - Ventilasi tutup',
+      message: value === 1 ? 'Servo BUKA - Ventilasi aktif (30 detik)' : 'Servo diabaikan (karena ESP auto tutup)',
       actuator: 'servo',
       value,
       timestamp: new Date().toISOString(),
@@ -315,6 +342,12 @@ async function bootstrap() {
         persistSession: false,
         autoRefreshToken: false,
       },
+      global: {
+        fetch: fetch,
+      },
+      realtime: {
+        transport: WebSocket,
+      }
     })
     : null;
 
@@ -361,26 +394,34 @@ async function bootstrap() {
   mqttClient.on('message', async (topic, messageBuffer) => {
     const rawPayload = messageBuffer.toString('utf-8');
 
-    try {
-      const row = parseSensorPayload(rawPayload);
-
-      // Hitung skor dan status kesehatan tanaman
-      const result = calculatePlantScore(row);
-      row.plant_score = result.score;
-      row.health_status = result.health_status;
-
-      if (supabase) {
-        await insertSensorData(supabase, row);
-        console.log(
-          `[BRIDGE] Data tersimpan dari topic ${topic}: suhu=${row.suhu}, kelembaban=${row.kelembaban}, soil=${row.soil}, tds=${row.tds}, ldr=${row.ldr} | SKOR: ${row.plant_score} (${row.health_status})`
-        );
-      } else {
-        console.log(
-          `[BRIDGE] Data sensor diterima (tanpa simpan DB): suhu=${row.suhu}, kelembaban=${row.kelembaban}, soil=${row.soil}, tds=${row.tds}, ldr=${row.ldr} | SKOR: ${row.plant_score} (${row.health_status})`
-        );
+    // Parse single payload JSON (legacy mode if topic is the main topic)
+    if (topic === 'farm/sensors/esp1_data') {
+      try {
+        const row = parseSensorPayload(rawPayload);
+        Object.assign(tempSensorData, row);
+        if (saveSensorTimeout) clearTimeout(saveSensorTimeout);
+        await processAccumulatedSensors(supabase);
+      } catch (error) {
+        console.error(`[BRIDGE] Gagal memproses JSON dari ${topic}:`, error.message);
       }
-    } catch (error) {
-      console.error(`[BRIDGE] Gagal memproses message dari topic ${topic}:`, error.message);
+      return;
+    }
+
+    // Process individual topics support
+    const val = Number(rawPayload);
+    let updated = true;
+    if (topic.endsWith('/suhu')) tempSensorData.suhu = val;
+    else if (topic.endsWith('/kelembaban')) tempSensorData.kelembaban = val;
+    else if (topic.endsWith('/soil')) tempSensorData.soil = val;
+    else if (topic.endsWith('/tds')) tempSensorData.tds = val;
+    else if (topic.endsWith('/ldr')) tempSensorData.ldr = val;
+    else updated = false;
+
+    if (updated) {
+      if (saveSensorTimeout) clearTimeout(saveSensorTimeout);
+      saveSensorTimeout = setTimeout(async () => {
+        await processAccumulatedSensors(supabase);
+      }, 500); // Tunggu setengah detik untuk data sensor lainnya
     }
   });
 
