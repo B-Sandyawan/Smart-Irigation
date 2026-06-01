@@ -27,12 +27,12 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 const config = {
-  supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+  supabaseUrl: (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL)?.trim(),
 
   supabaseKey:
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    (process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY,
+    process.env.VITE_SUPABASE_ANON_KEY)?.trim(),
   supabaseTable: process.env.SUPABASE_TABLE || 'sensor_data',
   mqttBrokerUrl: process.env.MQTT_BROKER_URL || 'mqtts://r7662111.ala.asia-southeast1.emqxsl.com:8883',
   mqttUsername: process.env.MQTT_USERNAME || 'esp_farm',
@@ -52,6 +52,10 @@ let mqttClient;
 let supabase;
 
 function validateConfig() {
+  console.log('[DEBUG] Supabase URL:', config.supabaseUrl ? 'OK' : 'MISSING');
+  console.log('[DEBUG] Supabase Key:', config.supabaseKey ? `OK (${config.supabaseKey.length} chars)` : 'MISSING');
+  console.log('[DEBUG] SERVICE_ROLE_KEY env:', process.env.SUPABASE_SERVICE_ROLE_KEY ? `OK (${process.env.SUPABASE_SERVICE_ROLE_KEY.length} chars)` : 'MISSING');
+  
   if (!isSupabaseConfigured) {
     console.warn(
       '[PERINGATAN] Supabase belum dikonfigurasi. Penyimpanan sensor ke database dinonaktifkan, kontrol aktuator tetap aktif.'
@@ -110,6 +114,7 @@ async function processAccumulatedSensors(supabase) {
     const result = calculatePlantScore(row);
     row.plant_score = result.score;
     row.health_status = result.health_status;
+    row.created_at = new Date().toISOString(); // Tambahkan created_at agar frontend tidak error Date
 
     if (supabase) {
       // 1. Kirim ke Web dulu via Supabase Broadcast (Real-time seketika)
@@ -139,6 +144,12 @@ async function insertSensorData(supabase, row) {
   const { error } = await supabase.from(config.supabaseTable).insert([row]);
 
   if (error) {
+    console.log('[DEBUG] Insert Error Details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      status: error.status
+    });
     throw new Error(`Gagal insert ke Supabase: ${error.message}`);
   }
 }
