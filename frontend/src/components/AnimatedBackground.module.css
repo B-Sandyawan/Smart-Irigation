@@ -1,0 +1,138 @@
+.context {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.area {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #9BC19B;
+  background: linear-gradient(180deg, #9BC19B 0%, #9BC19B 70%, #cde7b5 85%, #e6f1d7 95%, #f6f9ed 100%);
+}
+
+.circles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.circles li {
+  position: absolute;
+  display: block;
+  list-style: none;
+  bottom: -120px;
+}
+
+.circle {
+  background: rgba(255, 255, 255, 0.2);
+  animation: floatUp 26s ease-in-out infinite;
+  animation-fill-mode: both;
+  opacity: 0.85;
+  will-change: transform, opacity;
+}
+
+.animateCircle1 {
+  left: 12%;
+  width: 100px;
+  height: 64px;
+  animation-duration: 28s;
+  animation-delay: 0s;
+}
+
+.animateCircle2 {
+  left: 8%;
+  width: 42px;
+  height: 24px;
+  animation-duration: 20s;
+  animation-delay: 3s;
+}
+
+.animateCircle3 {
+  left: 68%;
+  width: 50px;
+  height: 34px;
+  animation-duration: 24s;
+  animation-delay: 1s;
+}
+
+.animateCircle4 {
+  left: 38%;
+  width: 88px;
+  height: 46px;
+  animation-duration: 22s;
+  animation-delay: 5s;
+}
+
+.animateCircle5 {
+  left: 62%;
+  width: 26px;
+  height: 26px;
+  animation-duration: 18s;
+  animation-delay: 2s;
+}
+
+.animateCircle6 {
+  left: 76%;
+  width: 120px;
+  height: 68px;
+  animation-duration: 26s;
+  animation-delay: 7s;
+}
+
+.animateCircle7 {
+  left: 32%;
+  width: 140px;
+  height: 72px;
+  animation-duration: 32s;
+  animation-delay: 4s;
+}
+
+.animateCircle8 {
+  left: 52%;
+  width: 34px;
+  height: 20px;
+  animation-duration: 20s;
+  animation-delay: 6s;
+}
+
+.animateCircle9 {
+  left: 18%;
+  width: 28px;
+  height: 32px;
+  animation-duration: 30s;
+  animation-delay: 8s;
+}
+
+.animateCircle10 {
+  left: 84%;
+  width: 136px;
+  height: 80px;
+  animation-duration: 34s;
+  animation-delay: 0s;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.7;
+    border-radius: 18%;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translateY(-140vh) rotate(360deg);
+    opacity: 0;
+    border-radius: 30%;
+  }
+}

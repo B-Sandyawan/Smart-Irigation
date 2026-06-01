@@ -12,17 +12,38 @@ import clockIcon from '../assets/profilIcon/clock.svg';
 const Profile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [streakDays, setStreakDays] = useState(0);
+
+  const calculateStreakDays = (createdAt) => {
+    if (!createdAt) return 0;
+    const signUpDate = new Date(createdAt);
+    if (Number.isNaN(signUpDate.getTime())) return 0;
+
+    const startOfSignUp = new Date(signUpDate);
+    startOfSignUp.setHours(0, 0, 0, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const diff = Math.floor((today - startOfSignUp) / 86400000) + 1;
+    return diff > 0 ? diff : 0;
+  };
+
+  useEffect(() => {
+    if (!user?.created_at) return;
+    setStreakDays(calculateStreakDays(user.created_at));
+  }, [user?.created_at]);
 
   const dummyData = {
-    plantName: "Kangkung",
+    plantName: "Chili",
     plantSubtitle: "Tanaman dalam kebunku",
-    plantDescription: "Kangkung adalah tanaman sayuran hijau yang tumbuh cepat dan banyak ditemukan di daerah berair.",
+    plantDescription: "Cabai atau Chili adalah tanaman semak dari genus Capsicum yang menghasilkan buah panjang dan lancip. Buahnya digunakan sebagai rempah-rempah dan sayuran, terkenal karena rasa pedasnya yang kuat dan banyak digunakan dalam masakan Asia.",
     achievements: [
       {
         id: 1,
         icon: streakIcon,
-        title: 'Achievement Unlocked',
-        description: '100 Days Streak of farming!',
+        title: 'Streak',
+        description: `${streakDays} hari`,
         titleColor: '#EA7F1D',
       },
       {
@@ -132,7 +153,7 @@ const Profile = () => {
   };
 
   return (
-    <section className="relative flex h-screen flex-col overflow-hidden bg-[#9BC19B] font-sans">
+    <section className="relative flex h-screen flex-col overflow-hidden bg-transparent font-sans">
       
       {showLogoutModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#2C2C2C]/40 backdrop-blur-sm px-4 transition-opacity duration-300">

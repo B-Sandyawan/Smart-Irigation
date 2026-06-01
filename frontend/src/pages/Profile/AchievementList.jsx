@@ -7,14 +7,14 @@ const AchievementCard = ({ icon, title, description, titleColor }) => {
 
   return (
     <div
-      className="min-h-[84px] w-full rounded-[20px] border border-[#5D5A56] bg-[#F3F0EC] px-[14px] py-[10px] shadow-[0_3px_8px_rgba(0,0,0,0.22)]"
+      className="min-h-[100px] w-full rounded-[20px] border border-[#5D5A56] bg-[#F3F0EC] px-[14px] py-[10px] shadow-[0_3px_8px_rgba(0,0,0,0.22)]"
     >
       <div className="flex items-center gap-[12px]">
-        <div className="flex h-[54px] w-[54px] flex-shrink-0 items-center justify-center">
+        <div className="flex h-[64px] w-[64px] flex-shrink-0 items-center justify-center overflow-visible">
           {isImageIcon ? (
-            <img src={icon} alt="Achievement icon" className="h-[54px] w-[54px] object-contain" />
+            <img src={icon} alt="Achievement icon" className="h-[64px] w-[64px] object-contain" />
           ) : (
-            <span className="text-[42px] leading-none">{icon}</span>
+            <span className="text-[48px] leading-none">{icon}</span>
           )}
         </div>
 

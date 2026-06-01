@@ -10,11 +10,11 @@ const Input = ({ type = 'text', placeholder, icon, rightIcon, containerStyle, bg
       )}
       <input
         type={type}
-        className="flex-grow bg-transparent text-[16px] leading-[1.275em] text-[#000000] placeholder-[#000000] outline-none font-normal"
+        className="cursor-target flex-grow bg-transparent text-[16px] leading-[1.275em] text-[#000000] placeholder-[#000000] outline-none font-normal"
         placeholder={placeholder}
       />
       {rightIcon && (
-        <button type="button" className="flex-shrink-0 ml-[12px] flex items-center justify-center w-[24px] h-[24px] cursor-pointer bg-transparent border-none">
+        <button type="button" className="cursor-target flex-shrink-0 ml-[12px] flex items-center justify-center w-[24px] h-[24px] bg-transparent border-none">
           {rightIcon}
         </button>
       )}

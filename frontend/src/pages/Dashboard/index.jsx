@@ -319,10 +319,10 @@ const DashboardPage = () => {
   };
 
   return (
-    <section className="flex h-screen flex-col bg-primary-light overflow-hidden font-sans">
+    <section className="flex h-screen flex-col bg-transparent overflow-hidden font-sans">
       
       {/* Header */}
-      <div className={`shrink-0 z-20 px-4 pt-6 pb-4 sm:px-6 lg:px-8 transition-all duration-300 ${isScrolled ? 'shadow-md bg-primary-light/95 backdrop-blur-sm border-b border-white/10' : ''}`}>
+      <div className={`shrink-0 z-20 px-4 pt-6 pb-4 sm:px-6 lg:px-8 transition-all duration-300 ${isScrolled ? 'shadow-md bg-white/10 backdrop-blur-sm border-b border-white/10' : ''}`}>
         <div className="mx-auto w-full max-w-[980px]">
           <h1 className="text-[26px] font-bold text-white tracking-wide drop-shadow-sm">
             {dashboardDummyData.title}
@@ -369,7 +369,7 @@ const DashboardPage = () => {
                 {/* Kiri: Last Updated */}
                 <div className="flex flex-col space-y-1.5 transition-opacity group">
                   <div className="flex items-center gap-2 text-[13px] font-medium text-[#999]">
-                    <span className="text-[15px]">🗓️</span>
+                    <span className="text-[15px]">📆</span>
                     <span>Terakhir di Update</span>
                   </div>
                   <p className="pl-6 text-[14px] font-medium text-[#444] transition-colors group-hover:text-[#4B9567]">

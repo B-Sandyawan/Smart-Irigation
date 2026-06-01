@@ -1,14 +1,14 @@
 import React from 'react';
 
 
-import kangkungImage from '../../assets/kankung.png';
+import chiliImage from '../../assets/cabai2.png';
 
 const PlantInfoCard = ({ 
   
-  imageUrl = kangkungImage, 
-  plantName = "Kangkung",
+  imageUrl = chiliImage, 
+  plantName = "Chili",
   plantSubtitle = "Tanaman dalam kebunku",
-  plantDescription = "Kangkung adalah tanaman sayuran hijau yang tumbuh cepat dan banyak ditemukan di daerah berair."
+  plantDescription = "Cabai atau Chili adalah tanaman semak dari genus Capsicum yang menghasilkan buah panjang dan lancip. Buahnya digunakan sebagai rempah-rempah dan sayuran, terkenal karena rasa pedasnya yang kuat dan banyak digunakan dalam masakan Asia."
 }) => {
   return (
     <div className="w-full rounded-[18px] border border-[#5D5A56] bg-[#F3F0EC] px-5 py-6 shadow-[0_3px_8px_rgba(0,0,0,0.22)] flex flex-col items-center">

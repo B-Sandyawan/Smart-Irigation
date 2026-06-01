@@ -7,10 +7,17 @@ import Profile from './pages/Profile';
 import Plants from './pages/Plants';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
+import TargetCursor from './components/TargetCursor';
 
 function App() {
   return (
     <BrowserRouter>
+      {/* TargetCursor will be globally available across all pages */}
+      <TargetCursor 
+        spinDuration={2} 
+        parallaxOn={true} 
+        targetSelector=".cursor-target, button, a, input, [role='button'], h1, h2, h3, p, label, .text-target" 
+      />
       <Routes>
         <Route
           path="/login"

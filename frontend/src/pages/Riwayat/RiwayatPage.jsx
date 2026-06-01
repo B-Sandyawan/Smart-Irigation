@@ -173,11 +173,10 @@ const RiwayatPage = () => {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <section className="flex h-screen flex-col bg-[#9BC19B] overflow-hidden font-sans">
+    <section className="flex h-screen flex-col bg-transparent overflow-hidden font-sans">
 
       {/* HEADER */}
-      <div className={`shrink-0 z-20 px-4 pt-6 sm:px-6 lg:px-8 transition-all duration-300 ${isScrolled ? 'shadow-md bg-[#9BC19B]/95 backdrop-blur-sm' : ''
-        }`}>
+      <div className={`shrink-0 z-20 px-4 pt-6 sm:px-6 lg:px-8 transition-all duration-300 ${isScrolled ? 'shadow-md bg-white/10 backdrop-blur-sm' : ''}`}>
         <div className="mx-auto w-full max-w-[980px]">
           <h1 className="text-[26px] font-bold text-white tracking-wide drop-shadow-sm">
             Pantau Tanaman
